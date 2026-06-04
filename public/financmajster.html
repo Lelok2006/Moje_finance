@@ -1,0 +1,2084 @@
+<!DOCTYPE html>
+<html lang="sl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Financmajster — tvoj finančni pomočnik</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ── RESET & VARS ─────────────────────────── */
+:root {
+  /* ── Moje finance design tokens ── */
+  --bg:      #F8F9FA;
+  --surface: #FFFFFF;
+  --ink:     #2C2C2A;
+  --ink2:    #5F5E5A;
+  --ink3:    #888780;
+  --border:  rgba(0,0,0,0.08);
+  --border2: rgba(0,0,0,0.15);
+  --serif:   'Inter', system-ui, sans-serif;
+  --sans:    'Inter', system-ui, sans-serif;
+  /* Kategorije — usklajene z Moje finance */
+  --c-placa:        #185FA5;
+  --c-davki:        #0F6E56;
+  --c-druzina:      #6D28D9;
+  --c-krediti:      #993C1D;
+  --c-nepremicnine: #0F6E56;
+  --c-varcevanje:   #534AB7;
+  --c-sp:           #854F0B;
+  /* Akcent barva */
+  --accent:  #185FA5;
+  --accent-bg: #EBF4FF;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body { font-family: var(--sans); background: var(--bg); color: var(--ink); font-size: 15px; line-height: 1.6; }
+
+/* ── NAV ─────────────────────────────────── */
+nav {
+  display: none;
+}
+.logo { font-family: var(--serif); font-size: 19px; font-weight: 600; cursor: pointer; flex-shrink: 0; }
+.breadcrumb { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink3); flex: 1; overflow: hidden; }
+.crumb { cursor: pointer; transition: color .15s; white-space: nowrap; }
+.crumb:hover { color: var(--ink); }
+.crumb.cur { color: var(--ink); font-weight: 500; }
+.sep { color: var(--border2); }
+
+/* ── PAGES ─────────────────────────────── */
+.pg { display: none; }
+.pg.on { display: block; animation: fadeUp .22s ease both; }
+@keyframes fadeUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+
+/* ── SHARED LAYOUT ──────────────────────── */
+.wrap { max-width: 860px; margin: 0 auto; padding: 0 1.5rem 3rem; }
+
+/* ── HOME ───────────────────────────────── */
+.hero { padding: 2rem 0 1.5rem; border-bottom: 1px solid var(--border); margin-bottom: 1.5rem; display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:1rem; }
+.hero h1 { font-family: var(--sans); font-size: clamp(26px,4vw,38px); font-weight:600; line-height:1.1; letter-spacing:-.02em; }
+.hero h1 em { font-style:italic; }
+.hero p { font-size:15px; color:var(--ink2); line-height:1.7; margin-top:.8rem; max-width:460px; }
+.hero-stat { text-align:right; }
+.hero-num { font-family:var(--sans); font-size:36px; font-weight:600; }
+.hero-numlabel { font-size:11px; color:var(--ink3); margin-top:2px; }
+
+.sec-label { font-size:11px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:var(--ink3); margin-bottom:1.25rem; }
+
+.domain-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:1px; background:var(--border); border:1px solid var(--border); border-radius:12px; overflow:hidden; }
+@media(max-width:680px){ .domain-grid{grid-template-columns:repeat(2,1fr);} }
+@media(max-width:400px){ .domain-grid{grid-template-columns:1fr;} }
+
+/* SP grid — ena sama kartica, vedno široka */
+#sp-grid { grid-template-columns: 1fr; }
+#sp-grid .dcard { flex-direction: row; align-items: center; gap: 2rem; }
+#sp-grid .dcard .dcard-desc { margin-bottom: 0; }
+#sp-grid .dcard::after { bottom:1.75rem; top:1.75rem; left:0; right:auto; width:2px; height:auto; transform:scaleY(0); transform-origin:top; }
+#sp-grid .dcard:hover::after { transform:scaleY(1); }
+/* remove orphan wide-card rule — no longer needed */
+
+.dcard { background:var(--surface); padding:1.75rem; cursor:pointer; transition:background .15s; position:relative; display:flex; flex-direction:column; gap:0; }
+.dcard:hover { background:#FDFCF7; }
+.dcard-num { font-family:var(--serif); font-size:11px; font-style:italic; color:var(--ink3); margin-bottom:1.25rem; flex-shrink:0; }
+.dcard-title { font-size:15px; font-weight:600; line-height:1.2; margin-bottom:.45rem; }
+.dcard-desc { font-size:12px; color:var(--ink3); line-height:1.55; flex:1; margin-bottom:1rem; }
+.dcard-count { font-size:11px; color:var(--ink3); display:flex; align-items:center; gap:6px; flex-shrink:0; }
+.dcard-count::before { content:''; display:inline-block; width:12px; height:1px; background:currentColor; }
+.dcard-arrow { position:absolute; top:1.75rem; right:1.75rem; font-size:14px; color:var(--ink3); transition:transform .15s, color .15s; }
+.dcard:hover .dcard-arrow { transform:translate(2px,-2px); color:var(--ink); }
+.dcard::after { content:''; position:absolute; bottom:0; left:1.75rem; right:1.75rem; height:2px; border-radius:2px; transform:scaleX(0); transform-origin:left; transition:transform .2s; }
+.dcard:hover::after { transform:scaleX(1); }
+/* wide card: accent bar on left instead of bottom — handled per #sp-grid */
+
+/* domain accents */
+[data-c="placa"] .dcard-num, [data-c="placa"]::after        { color:var(--c-placa);        background:var(--c-placa); }
+[data-c="davki"] .dcard-num, [data-c="davki"]::after        { color:var(--c-davki);        background:var(--c-davki); }
+[data-c="druzina"] .dcard-num, [data-c="druzina"]::after    { color:var(--c-druzina);      background:var(--c-druzina); }
+[data-c="krediti"] .dcard-num, [data-c="krediti"]::after    { color:var(--c-krediti);      background:var(--c-krediti); }
+[data-c="nepremicnine"] .dcard-num,[data-c="nepremicnine"]::after { color:var(--c-nepremicnine); background:var(--c-nepremicnine); }
+[data-c="varcevanje"] .dcard-num, [data-c="varcevanje"]::after  { color:var(--c-varcevanje);   background:var(--c-varcevanje); }
+[data-c="sp"] .dcard-num, [data-c="sp"]::after              { color:var(--c-sp);           background:var(--c-sp); }
+
+.trust-row { display:flex; gap:2rem; flex-wrap:wrap; margin-top:2rem; padding-top:2rem; border-top:1px solid var(--border); }
+.trust-item { font-size:12px; color:var(--ink3); display:flex; align-items:center; gap:8px; }
+.trust-item::before { content:''; display:inline-block; width:14px; height:1px; background:currentColor; }
+
+/* ── CATEGORY PAGE ──────────────────────── */
+.cat-header { padding:3rem 0 2rem; border-bottom:1px solid var(--border); margin-bottom:2rem; display:flex; align-items:flex-end; justify-content:space-between; gap:2rem; flex-wrap:wrap; }
+.cat-bar { height:3px; border-radius:2px; width:40px; margin-bottom:.75rem; }
+.cat-eyebrow { font-size:11px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:var(--ink3); margin-bottom:.5rem; }
+.cat-title { font-family:var(--serif); font-size:clamp(26px,4vw,38px); font-weight:400; line-height:1.1; letter-spacing:-.02em; }
+.cat-desc { font-size:14px; color:var(--ink2); line-height:1.7; margin-top:.6rem; max-width:460px; }
+.back-btn { font-size:13px; font-weight:500; color:var(--ink3); cursor:pointer; display:flex; align-items:center; gap:5px; transition:color .15s; padding:6px 0; flex-shrink:0; }
+.back-btn:hover { color:var(--ink); }
+
+.calc-list { display:grid; grid-template-columns:repeat(auto-fill,minmax(290px,1fr)); gap:1px; background:var(--border); border:1px solid var(--border); border-radius:16px; overflow:hidden; }
+.citem { background:var(--surface); padding:1.4rem 1.5rem; cursor:pointer; transition:background .15s; display:flex; flex-direction:column; gap:5px; position:relative; }
+.citem:hover { background:#FDFCF7; }
+.citem::before { content:''; position:absolute; left:0; top:20%; bottom:20%; width:2px; border-radius:1px; opacity:0; transition:opacity .15s; background:var(--acc, var(--ink)); }
+.citem:hover::before { opacity:1; }
+.ci-top { display:flex; align-items:flex-start; justify-content:space-between; gap:8px; }
+.ci-name { font-size:15px; font-weight:600; line-height:1.3; }
+.ci-desc { font-size:13px; color:var(--ink2); line-height:1.5; }
+.ci-link { font-size:12px; font-weight:600; margin-top:3px; }
+.badges { display:flex; gap:4px; flex-shrink:0; }
+.badge { font-size:10px; font-weight:600; padding:2px 6px; border-radius:4px; }
+.b-law  { background:#EFF4FD; color:var(--c-placa); }
+.b-new  { background:#F4EFF8; color:var(--c-druzina); }
+.b-pop  { background:#EFF7F2; color:var(--c-davki); }
+
+/* ── CALCULATOR PAGE ────────────────────── */
+.calc-page { max-width:720px; margin:0 auto; padding:0 2rem 4rem; }
+.calc-header { padding:2.5rem 0 2rem; border-bottom:1px solid var(--border); margin-bottom:2rem; }
+.calc-title { font-family:var(--sans); font-size:clamp(20px,3vw,26px); font-weight:600; letter-spacing:-.01em; margin-bottom:.4rem; }
+.calc-subtitle { font-size:13px; color:var(--ink3); }
+.law-ref { display:inline-flex; align-items:center; gap:6px; background:var(--bg); border:1px solid var(--border2); border-radius:6px; padding:4px 10px; font-size:11px; color:var(--ink3); margin-top:.75rem; }
+
+/* Input panel */
+.panel { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:1.25rem; margin-bottom:1rem; }
+.panel-label { font-size:10px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:var(--ink3); padding-bottom:.75rem; border-bottom:1px solid var(--border); margin-bottom:1.25rem; }
+.field { margin-bottom:1.25rem; }
+.field:last-child { margin-bottom:0; }
+.field > label { display:block; font-size:12px; font-weight:500; color:var(--ink2); margin-bottom:.4rem; }
+.hint { font-size:11px; color:var(--ink3); margin-top:4px; line-height:1.45; }
+
+.inp-wrap { position:relative; }
+.pfx { position:absolute; left:12px; top:50%; transform:translateY(-50%); font-size:13px; color:var(--ink3); pointer-events:none; }
+.sfx { position:absolute; right:12px; top:50%; transform:translateY(-50%); font-size:12px; color:var(--ink3); pointer-events:none; }
+
+input[type=text], input[type=number], input[type=date], select, textarea {
+  width:100%; height:44px; font-family:var(--sans); font-size:14px; color:var(--ink);
+  background:var(--surface); border:1px solid var(--border2); border-radius:8px;
+  padding:0 13px; outline:none; transition:border-color .15s; -webkit-appearance:none; appearance:none;
+}
+input:focus, select:focus { border-color:var(--ink); background:#fff; }
+.has-pfx input { padding-left:28px; }
+.has-sfx input { padding-right:36px; }
+
+select {
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='7' viewBox='0 0 11 7'%3E%3Cpath d='M1 1l4.5 4.5L10 1' fill='none' stroke='%239C9488' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat; background-position:right 12px center; padding-right:34px; cursor:pointer;
+}
+
+.tgl { display:flex; gap:6px; flex-wrap:wrap; }
+.tgl-btn { flex:1; min-width:80px; height:38px; border-radius:8px; border:1px solid var(--border2); background:var(--bg); font-family:var(--sans); font-size:12px; font-weight:500; color:var(--ink2); cursor:pointer; transition:all .15s; padding:0 10px; white-space:nowrap; }
+.tgl-btn:hover { border-color:var(--border2); background:var(--surface); }
+.tgl-btn.on { background:var(--accent); border-color:var(--accent); color:#fff; font-weight:600; }
+
+/* Result panel */
+.result-panel { background:var(--accent); border-radius:12px; padding:1.5rem; margin-bottom:1.25rem; }
+.result-label { font-size:10px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:rgba(255,255,255,.4); margin-bottom:.4rem; }
+.result-amount { font-family:var(--sans); font-size:clamp(28px,4vw,40px); font-weight:600; letter-spacing:-.02em; line-height:1; color:#FFFFFF; }
+.result-sub { font-size:13px; color:rgba(253,252,250,.55); margin-top:.4rem; line-height:1.5; }
+.result-sub strong { color:rgba(253,252,250,.9); font-weight:500; }
+
+.breakdown { background:var(--surface); border:1px solid var(--border); border-radius:12px; overflow:hidden; margin-bottom:1rem; }
+.brow { display:flex; justify-content:space-between; align-items:center; padding:11px 16px; border-bottom:1px solid var(--border); gap:10px; }
+.brow:last-child { border-bottom:none; }
+.brow.total { border-top:1px solid var(--border); }
+.bl { font-size:13px; color:var(--ink2); }
+.br { font-family:var(--serif); font-size:15px; color:var(--ink); }
+.br.acc { color:var(--ink); font-weight:600; }
+.br.muted { color:var(--ink3); }
+
+.bar-section { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:1.25rem; margin-bottom:1.25rem; }
+.bar-slabel { font-size:10px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:var(--ink3); margin-bottom:1rem; }
+.barrow { display:flex; align-items:center; gap:10px; margin-bottom:8px; }
+.barrow:last-child { margin-bottom:0; }
+.barlabel { font-size:12px; color:var(--ink2); width:130px; flex-shrink:0; line-height:1.3; }
+.bartrack { flex:1; height:6px; background:var(--bg); border-radius:3px; overflow:hidden; }
+.barfill { height:100%; border-radius:3px; transition:width .4s cubic-bezier(.25,1,.5,1); }
+.barval { font-size:12px; font-weight:500; color:var(--ink2); width:70px; text-align:right; flex-shrink:0; }
+
+.warn { border-radius:10px; padding:11px 14px; font-size:12px; line-height:1.6; margin-bottom:1rem; display:none; }
+.warn.on { display:block; }
+.warn-amber { background:#FBF4E5; border:1px solid rgba(160,104,32,.2); color:#7A4E10; }
+.warn-red   { background:#FDF0ED; border:1px solid rgba(180,60,40,.2); color:#8A2A1A; }
+.warn-green { background:#EAF3EE; border:1px solid rgba(46,107,70,.2); color:#1A5A34; }
+
+.disclaimer { font-size:11px; color:var(--ink3); line-height:1.6; padding-top:1rem; border-top:1px solid var(--border); margin-top:.5rem; }
+
+/* chart canvas */
+canvas { width:100% !important; }
+
+/* footer */
+footer { border-top:1px solid var(--border); padding:1.5rem 2rem; max-width:960px; margin:0 auto; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem; }
+.flogo { font-family:var(--serif); font-size:15px; font-weight:600; }
+.fnote { font-size:11px; color:var(--ink3); }
+.flinks { display:flex; gap:1.25rem; }
+.flinks a { font-size:11px; color:var(--ink3); cursor:pointer; }
+
+/* ── Moje finance iframe overrides ── */
+body { padding-top: 0 !important; }
+.pg-calc-inner { padding-top: 1rem; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logo" onclick="goHome()">Financmajster</div>
+  <div class="breadcrumb" id="bc"></div>
+</nav>
+
+<div id="pg-home" class="pg on">
+<div class="wrap">
+  <div class="hero">
+    <div>
+      <h1>Tvoj denar,<br><em>jasno povedano</em></h1>
+      <p>Izračuni za zaposlene, starše, kupce nepremičnin in podjetnike. Brez žargona, brez registracije. Veljavna slovenska zakonodaja.</p>
+    </div>
+    <div class="hero-stat">
+      <div class="hero-num">31</div>
+      <div class="hero-numlabel">brezplačnih kalkulatorjev</div>
+    </div>
+  </div>
+  <div class="sec-label">Izberite področje</div>
+  <div class="domain-grid" id="domain-grid"></div>
+
+  <div style="margin-top:2.5rem;padding-top:2rem;border-top:1px solid var(--border)">
+    <div class="sec-label">Za podjetnike in s.p.</div>
+    <div class="domain-grid" id="sp-grid"></div>
+  </div>
+
+  <div class="trust-row">
+    <div class="trust-item">Veljavna slovenska zakonodaja</div>
+    <div class="trust-item">Brez registracije</div>
+    <div class="trust-item">Vrednosti se redno posodabljajo</div>
+    <div class="trust-item">Informativni izračuni</div>
+  </div>
+</div>
+</div>
+
+<div id="pg-cat" class="pg"></div>
+<div id="pg-calc" class="pg"></div>
+
+<footer>
+  <div class="flogo">Financmajster</div>
+  <div class="fnote">Informativni izračuni — niso pravni ali finančni nasvet.</div>
+  <div class="flinks"><a>O projektu</a><a>Zasebnost</a><a>Kontakt</a></div>
+</footer>
+
+<script>
+// ══════════════════════════════════════════════════════════════════
+// CONFIG — vse zakonske vrednosti na enem mestu
+// Zadnja posodobitev: april 2026
+// ══════════════════════════════════════════════════════════════════
+const CFG = {
+  // Prispevki delavca (ZDoh-2, ZPIZ-2, ZZVZZ)
+  przDelavec: { piz:0.1550, zz:0.0636, starsevstvo:0.0010, brezposelnost:0.0014, oskrbo:0.0100 },
+  // Prispevki delodajalca
+  przDelod:   { piz:0.0885, zz:0.0656, starsevstvo:0.0010, brezposelnost:0.0006, nezgoda:0.0053, oskrbo:0.0100 },
+  // OZP — Obvezni zdravstveni prispevek (ZZVZZ, od 1.3.2026)
+  ozp: 39.36,                      // fiksni mesečni znesek, odtegne se od bruto
+  // Dohodninshi razredi 2026 (ZDoh-2, 122. člen; Ur. l. RS, 104/25)
+  dohodnina: [
+    { do:9721.43,   stopnja:0.16, od:0 },
+    { do:28592.44,  stopnja:0.26, od:9721.43 },
+    { do:57184.88,  stopnja:0.33, od:28592.44 },
+    { do:82346.23,  stopnja:0.39, od:57184.88 },
+    { do:Infinity,  stopnja:0.50, od:82346.23 },
+  ],
+  // Olajšave 2026
+  splosnaOlajsava: 5551.93,        // osnovna splošna olajšava (Ur. l. RS, 104/25)
+  olajsavaOtrok1:  2995.83,        // 1. otrok (letno)
+  olajsavaOtrok2:  3256.77,        // 2. otrok — dodatek za 2. otroka
+  olajsavaOtrok3:  5432.02,        // 3.+ otrok — dodatek za vsakega nadaljnjega
+  olajsavaStudent: 3500,
+  invOlajsava:     0,              // investicijska olajšava (po potrebi)
+  // Minimalna in povprečna plača 2026
+  minPlaca:        1481.88,        // bruto (ZMinP, velja od 1.1.2026)
+  povpPlaca:       2395,           // SURS 2025 bruto povprečje
+  // DPN, DDV
+  dpn:             0.02,
+  ddv:             0.22,
+  // Odpravnina (ZDR-1, 108. člen)
+  odpravninaKoef:  1/5,
+  odpravninaMax:   10,
+  odpravninaMinLeta: 2,
+  // Pokojninska osnova za upokojitev
+  upokojitvePokojnina: 2,          // 2× povprečna za odpravnino ob upokojitvi
+  // Otroški dodatek 2026 — razredi (neto dohodek/osebo)
+  otroškiRazredi: [
+    { do:232.31,   odstotek:100 },  // 1. razred — 100% od osnove
+    { do:326.27,   odstotek:90  },
+    { do:408.26,   odstotek:75  },
+    { do:490.26,   odstotek:55  },
+    { do:580.25,   odstotek:35  },
+    { do:688.74,   odstotek:15  },
+    { do:Infinity, odstotek:0   },
+  ],
+  otroškiOsnova1:  31.64,   // mesečna osnova za 1. otroka
+  otroškiOsnova2:  63.29,
+  otroškiOsnova3:  94.93,
+  // Nadomestilo za brezposelnost (ZUTD)
+  brezposOsnovaPct: 0.80,   // 80% zadnje plače, 1. 3 mesece
+  brezposOsnovaPct2: 0.60,  // 60% nato
+  brezposMax:       1661,   // maks. mesečno nadomestilo (130 % min. plače, ZUTD-I, 1.1.2026)
+  brezposMin:       894,    // min. (70 % min. plače, ZUTD-I, 1.1.2026)
+  // Sodna taksa nepremičnine (ZST-1)
+  sodnaTaksa: [ {do:500,e:17},{do:5000,e:55},{do:25000,e:110},{do:75000,e:165},{do:250000,e:220},{do:500000,e:330},{do:Infinity,e:440} ],
+  // Kapitalski dobiček — stopnje glede na leta lastništva (ZDoh-2)
+  kapitalStopnje: [ {leta:0,stop:0.25},{leta:5,stop:0.20},{leta:10,stop:0.15},{leta:15,stop:0.10},{leta:20,stop:0.00} ],
+  // S.P. prispevki (ZPIZ-2, ZZVZZ) — normiranec 2026
+  spPriznanStroški: 0.80,   // normiranec: 80% prihodkov kot stroški
+  spDavekNormiranec: 0.20,  // 20% od razlike
+  spPrizvanihMax: 100000,   // meja za normiranec
+  // Vrtec subvencija — razredi
+  vrtecRazredi: [
+    {do:390, pct:0},   // 1. razred — brezplačno
+    {do:530, pct:10},
+    {do:670, pct:20},
+    {do:840, pct:30},
+    {do:1000,pct:35},
+    {do:1250,pct:43},
+    {do:Infinity,pct:53}
+  ],
+  vrtecCenaM: 490,   // povprečna cena prvega starostnega obdobja
+  vrtecCena2: 400,   // drugega
+};
+
+// ══════════════════════════════════════════════════════════════════
+// HELPERS
+// ══════════════════════════════════════════════════════════════════
+const f = n => Math.round(n).toLocaleString('sl-SI') + ' €';
+const fp = n => n.toFixed(2).replace('.',',') + ' €';
+const pct = n => (n*100).toFixed(1).replace('.',',') + '%';
+function parseAmt(str){ return parseFloat((str||'').replace(/\./g,'').replace(',','.')) || 0; }
+function fmtInput(el){
+  const raw=el.value.replace(/[^\d]/g,''); const n=parseInt(raw)||0;
+  const pos=el.selectionStart, prev=el.value.length;
+  el.value=n>0?n.toLocaleString('sl-SI'):'';
+  el.setSelectionRange(pos+(el.value.length-prev),pos+(el.value.length-prev));
+}
+function calcDohodnina(letniDohodek, olajsave){
+  const osnova=Math.max(0, letniDohodek - olajsave);
+  let davek=0;
+  for(const r of CFG.dohodnina){
+    if(osnova<=r.od) break;
+    davek += (Math.min(osnova,r.do) - r.od) * r.stopnja;
+  }
+  return Math.max(0,davek);
+}
+function calcSodnaTaksa(val){
+  for(const r of CFG.sodnaTaksa) if(val<=r.do) return r.e;
+  return 440;
+}
+function calcNotary(val){
+  let base=0;
+  if(val<=1000) base=val*0.012;
+  else if(val<=10000) base=12+(val-10000+10000-1000)*0.006;
+  else if(val<=100000) base=66+(val-10000)*0.003;
+  else if(val<=500000) base=336+(val-100000)*0.0015;
+  else base=936+(val-500000)*0.001;
+  base=Math.max(base,40);
+  return {net:base, total:base*(1+CFG.ddv)};
+}
+function brutoNeto(bruto){
+  const przD=bruto*(CFG.przDelavec.piz+CFG.przDelavec.zz+CFG.przDelavec.starsevstvo+CFG.przDelavec.brezposelnost+CFG.przDelavec.oskrbo);
+  const ozp=CFG.ozp;
+  const davOsnova=bruto-przD-ozp;
+  const letni=davOsnova*12;
+  const davek=calcDohodnina(letni, CFG.splosnaOlajsava)/12;
+  const neto=bruto-przD-ozp-davek;
+  return {przD, ozp, davek, neto};
+}
+
+// ══════════════════════════════════════════════════════════════════
+// DATA — kategorije in kalkulatorji
+// ══════════════════════════════════════════════════════════════════
+const CATS = [
+  { id:'placa', num:'01', title:'Dohodki in plača', desc:'Bruto–neto izračun, odpravnina, regres, primerjava pogodbe.', color:'var(--c-placa)',
+    calcs:[
+      {id:'bruto-neto',   name:'Bruto ↔ Neto plača',         desc:'Točen izračun neto plače z olajšavami, otroki in bonitetami.', badges:['pop']},
+      {id:'bonitetami',   name:'Plača z bonitetami',          desc:'Vpliv bonitete (avto, stanovanje, malica) na neto plačo.',     badges:[]},
+      {id:'pogodbe',      name:'Redna vs. s.p.',              desc:'Kje ostane več? Enaka bruto osnova, primerjava neto.',          badges:['new']},
+      {id:'odpravnina',   name:'Odpravnina',                  desc:'Zakonska odpravnina po ZDR-1: razlog, leta, kapica.',           badges:['law','pop']},
+      {id:'regres',       name:'Regres in solidarnostna pomoč',desc:'Minimalni regres 2026 in meje za solidarnostno pomoč.',       badges:['new']},
+    ]
+  },
+  { id:'davki', num:'02', title:'Davki in dohodnina', desc:'Letna dohodnina, kapitalski dobiček, davek od najemnine.', color:'var(--c-davki)',
+    calcs:[
+      {id:'dohodnina',    name:'Dohodnina 2026',              desc:'Letni izračun od vseh dohodkov po razredih ZDoh-2.',           badges:['law']},
+      {id:'dohodnina-st', name:'Dohodnina za študente',       desc:'Posebni izračun z osebno olajšavo do 26. leta.',               badges:[]},
+      {id:'kapital',      name:'Davek na kapitalski dobiček', desc:'25 % → 0 % po 20 letih. Izračun po datumu nakupa.',            badges:['new','law']},
+      {id:'najemnina-d',  name:'Davek od najemnine',          desc:'25 % z možnostjo normiranih stroškov 10 %.',                   badges:['new','law']},
+    ]
+  },
+  { id:'druzina', num:'03', title:'Družinski prejemki', desc:'Otroški dodatek, starševsko nadomestilo, bolniška, vrtec.', color:'var(--c-druzina)',
+    calcs:[
+      {id:'otroški',      name:'Otroški dodatek',             desc:'Višina glede na dohodkovni razred in število otrok.',          badges:['law','pop']},
+      {id:'porodniško',   name:'Starševsko nadomestilo',       desc:'100 % zadnje plače, maks. 2,5 × povprečje RS.',               badges:['law']},
+      {id:'brezposelnost',name:'Nadomestilo za brezposelnost',desc:'Višina in trajanje glede na delovno dobo.',                    badges:['new','law']},
+      {id:'vrtec',        name:'Subvencija vrtca',             desc:'Mesečni prispevek staršev po dohodkovnih razredih ZUPJS.',     badges:['new']},
+      {id:'bolniška',     name:'Bolniška nadomestila',         desc:'80–100 % plače — breme delodajalca ali ZZZS.',                badges:['law']},
+    ]
+  },
+  { id:'krediti', num:'04', title:'Krediti in posojila', desc:'Amortizacija, primerjava bank, predčasno odplačilo.', color:'var(--c-krediti)',
+    calcs:[
+      {id:'amortizacija', name:'Amortizacijski načrt',        desc:'Mesečni obrok, skupni stroški in efektivna obrestna mera.',   badges:['pop']},
+      {id:'banke',        name:'Primerjava kreditov',         desc:'Primerjaj dva kredita po stroških — kateri je cenejši.',      badges:[]},
+      {id:'predcasno',    name:'Predčasno odplačilo',         desc:'Prihranek pri enkratnem predčasnem odplačilu.',               badges:[]},
+      {id:'leasing',      name:'Leasing vs. kredit',          desc:'Katera oblika financiranja vozila je ugodnejša.',             badges:['new']},
+    ]
+  },
+  { id:'nepremicnine', num:'05', title:'Nepremičnine', desc:'Vsi stroški nakupa, donosnost oddajanja, najemnina vs. nakup.', color:'var(--c-nepremicnine)',
+    calcs:[
+      {id:'nakup',        name:'Stroški nakupa nepremičnine', desc:'DPN, notar, agencija, sodna taksa — skupaj pred podpisom.',   badges:['pop','law']},
+      {id:'najkup',       name:'Najemnina vs. nakup',         desc:'Kdaj se finančno bolj splača kupiti in kdaj najemati.',       badges:['new']},
+      {id:'donosnost',    name:'Donosnost oddajanja',         desc:'Neto donos po davkih, stroških in amortizaciji.',             badges:['new']},
+      {id:'npb',          name:'Subvencija za 1. nepremičnino',desc:'Pogoji in izračun subvencionirane obrestne mere NPB.',      badges:['new','law']},
+    ]
+  },
+  { id:'varcevanje', num:'06', title:'Varčevanje in pokojnina', desc:'Proračun, naložbe, inflacija, pokojnina, FIRE.', color:'var(--c-varcevanje)',
+    calcs:[
+      {id:'proracun',     name:'Mesečni proračun',            desc:'Prihodki in odhodki — presežek, primanjkljaj in cilji.',      badges:['pop']},
+      {id:'investicije',  name:'Investicijski kalkulator',    desc:'Prihodnja vrednost rednih naložb z obrestnoobrestnim računom.',badges:[]},
+      {id:'inflacija',    name:'Kalkulator inflacije',        desc:'Realna vrednost zneska čez leta ob dani inflaciji.',          badges:[]},
+      {id:'pokojnina',    name:'Pokojninski kalkulator',      desc:'Orientacijska višina pokojnine in datum upokojitve.',         badges:['law']},
+      {id:'fire',         name:'FIRE kalkulator',             desc:'Kdaj finančna neodvisnost po praviluvarčevanja.',             badges:['new']},
+    ]
+  },
+  { id:'sp', num:'07', title:'Podjetništvo in s.p.', desc:'Normiranec, prispevki, dividende, primerjava s redno zaposlitvijo.', color:'var(--c-sp)',
+    calcs:[
+      {id:'sp-davcni',    name:'S.P. prispevki in davki',     desc:'Primerjava dejanskih stroškov in normiranec 2026.',           badges:['new']},
+      {id:'normiranec',   name:'Normiranec — kdaj se splača?',desc:'Meja dohodkov, pri kateri je normiranec ugodnejši.',          badges:['new']},
+      {id:'dividende',    name:'Dividende d.o.o.',            desc:'Neto izplačilo po 25 % davku in zdravstvenem prispevku.',     badges:['new','law']},
+      {id:'sp-odpravnina',name:'Odpravnina (s.p./redna)',     desc:'Zakonska odpravnina po ZDR-1 — formula in kapica.',          badges:['law']},
+    ]
+  },
+];
+
+// ══════════════════════════════════════════════════════════════════
+// CALCULATOR RENDERERS — vsak vrne { html, init }
+// ══════════════════════════════════════════════════════════════════
+const CALCS = {};
+
+// ── 1. BRUTO ↔ NETO ──────────────────────────────────────────────
+CALCS['bruto-neto'] = {
+  law:'ZDoh-2, ZPIZ-2, ZZVZZ — 2026',
+  render(){
+    return `
+    <div class="panel">
+      <div class="panel-label">Vnesi podatke</div>
+      <div class="field"><label>Bruto mesečna plača</label>
+        <div class="inp-wrap has-pfx"><span class="pfx">€</span><input id="bn-bruto" type="text" value="2.000" oninput="fmtInput(this);BN.calc()"></div>
+        <div class="hint">Minimalna plača 2026: ${f(CFG.minPlaca)} bruto</div>
+      </div>
+      <div class="field"><label>Število vzdrževanih otrok</label>
+        <div class="tgl" id="bn-otroci">
+          ${[0,1,2,3].map(n=>`<button class="tgl-btn${n===0?' on':''}" onclick="BN.setOtroci(${n},this)">${n===3?'3+':n}</button>`).join('')}
+        </div>
+      </div>
+      <div class="field"><label>Prevoz (mesečno)</label>
+        <div class="inp-wrap has-pfx"><span class="pfx">€</span><input id="bn-prevoz" type="text" value="0" oninput="fmtInput(this);BN.calc()"></div>
+        <div class="hint">Neobdavčeno do dejanskih stroškov javnega prevoza</div>
+      </div>
+      <div class="field"><label>Malica (mesečno)</label>
+        <div class="inp-wrap has-pfx"><span class="pfx">€</span><input id="bn-malica" type="text" value="0" oninput="fmtInput(this);BN.calc()"></div>
+        <div class="hint">Neobdavčeno do 7,96 €/dan (2026)</div>
+      </div>
+    </div>
+    <div class="result-panel"><div class="result-label">Neto plača</div><div class="result-amount" id="bn-neto">—</div><div class="result-sub" id="bn-sub"></div></div>
+    <div class="breakdown" id="bn-bdown"></div>
+    <p class="disclaimer">Izračun je poenostavljen. Upošteva prispevke delavca in akontacijo dohodnine. Dejanski znesek se lahko razlikuje glede na letno odmero.</p>`;
+  },
+  init(){
+    window.BN = {
+      otroci:0,
+      setOtroci(n,btn){ this.otroci=n; document.querySelectorAll('#bn-otroci .tgl-btn').forEach(b=>b.classList.remove('on')); btn.classList.add('on'); this.calc(); },
+      calc(){
+        const bruto=parseAmt(document.getElementById('bn-bruto').value);
+        const prevoz=parseAmt(document.getElementById('bn-prevoz').value);
+        const malica=parseAmt(document.getElementById('bn-malica').value);
+        if(!bruto){ document.getElementById('bn-neto').textContent='—'; return; }
+        const przD=bruto*(CFG.przDelavec.piz+CFG.przDelavec.zz+CFG.przDelavec.starsevstvo+CFG.przDelavec.brezposelnost+CFG.przDelavec.oskrbo);
+        const ozp=CFG.ozp;
+        // Olajšave
+        let olajsave=CFG.splosnaOlajsava;
+        if(this.otroci>=1) olajsave+=CFG.olajsavaOtrok1;
+        if(this.otroci>=2) olajsave+=CFG.olajsavaOtrok2;
+        if(this.otroci>=3) olajsave+=CFG.olajsavaOtrok3;
+        const letniDohodek=(bruto-przD-ozp)*12;
+        const letniDavek=calcDohodnina(letniDohodek, olajsave);
+        const mesecniDavek=letniDavek/12;
+        const neto=bruto-przD-ozp-mesecniDavek+prevoz+malica;
+        document.getElementById('bn-neto').textContent=f(neto);
+        const efRate=((bruto-neto)/bruto*100).toFixed(1).replace('.',',');
+        document.getElementById('bn-sub').innerHTML=`Efektivna stopnja obremenitve: <strong>${efRate} %</strong>`;
+        document.getElementById('bn-bdown').innerHTML=`
+          <div class="brow"><div class="bl">Bruto plača</div><div class="br">${f(bruto)}</div></div>
+          <div class="brow"><div class="bl">Prispevki delavca (23,1 %)</div><div class="br muted">− ${f(przD)}</div></div>
+          <div class="brow"><div class="bl">OZP — obvezni zdravstveni prispevek</div><div class="br muted">− ${fp(ozp)}</div></div>
+          <div class="brow"><div class="bl">Akontacija dohodnine</div><div class="br muted">− ${f(mesecniDavek)}</div></div>
+          ${prevoz>0?`<div class="brow"><div class="bl">Prevoz (neobdavčeno)</div><div class="br">${f(prevoz)}</div></div>`:''}
+          ${malica>0?`<div class="brow"><div class="bl">Malica (neobdavčeno)</div><div class="br">${f(malica)}</div></div>`:''}
+          <div class="brow total"><div class="bl" style="font-weight:600">Neto plača</div><div class="br acc">${f(neto)}</div></div>
+          <div class="brow"><div class="bl">Strošek delodajalca (skupaj)</div><div class="br muted">${f(bruto*(1+0.1710))}</div></div>`;
+      }
+    };
+    BN.calc();
+  }
+};
+
+// ── 2. BONITETE ──────────────────────────────────────────────────
+CALCS['bonitetami'] = {
+  law:'ZDoh-2, 39. člen — Bonitete',
+  render(){
+    return `
+    <div class="panel">
+      <div class="panel-label">Osnovna plača</div>
+      <div class="field"><label>Bruto mesečna plača (brez bonitete)</label>
+        <div class="inp-wrap has-pfx"><span class="pfx">€</span><input id="bon-bruto" type="text" value="2.000" oninput="fmtInput(this);BON.calc()"></div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-label">Bonitete</div>
+      <div class="field"><label>Vrednost bonitete — Avto (mesečno)</label>
+        <div class="inp-wrap has-pfx"><span class="pfx">€</span><input id="bon-avto" type="text" value="0" oninput="fmtInput(this);BON.calc()"></div>
+        <div class="hint">Splošna vrednost: 1,5 % nabavne vrednosti / mesec</div>
+      </div>
+      <div class="field"><label>Stanovanje — najemnina, ki jo plača delodajalec</label>
+        <div class="inp-wrap has-pfx"><span class="pfx">€</span><input id="bon-stan" type="text" value="0" oninput="fmtInput(this);BON.calc()"></div>
+      </div>
+      <div class="field"><label>Izobraževanje (mesečno)</label>
+        <div class="inp-wrap has-pfx"><span class="pfx">€</span><input id="bon-izobr" type="text" value="0" oninput="fmtInput(this);BON.calc()"></div>
+      </div>
+    </div>
+    <div class="result-panel"><div class="result-label">Neto plača z bonitetami</div><div class="result-amount" id="bon-neto">—</div><div class="result-sub" id="bon-sub"></div></div>
+    <div class="breakdown" id="bon-bdown"></div>
+    <p class="disclaimer">Bonitete povečajo davčno osnovo. Neto plača je nižja, čeprav delodajalec več da.</p>`;
+  },
+  init(){
+    window.BON={
+      calc(){
+        const bruto=parseAmt(document.getElementById('bon-bruto').value);
+        const avto=parseAmt(document.getElementById('bon-avto').value);
+        const stan=parseAmt(document.getElementById('bon-stan').value);
+        const izobr=parseAmt(document.getElementById('bon-izobr').value);
+        const skupajBon=avto+stan+izobr;
+        const brezBon=brutoNeto(bruto);
+        const zBon=brutoNeto(bruto+skupajBon);
+        const razlika=zBon.neto-brezBon.neto;
+        document.getElementById('bon-neto').textContent=f(zBon.neto);
+        document.getElementById('bon-sub').innerHTML=`Brez bonitete: <strong>${f(brezBon.neto)}</strong> · razlika: <strong>${f(razlika)}</strong>`;
+        document.getElementById('bon-bdown').innerHTML=`
+          <div class="brow"><div class="bl">Bruto osnova</div><div class="br">${f(bruto)}</div></div>
+          <div class="brow"><div class="bl">Vrednost bonitete</div><div class="br">${f(skupajBon)}</div></div>
+          <div class="brow"><div class="bl">Davčna osnova (bruto+boniteta)</div><div class="br">${f(bruto+skupajBon)}</div></div>
+          <div class="brow"><div class="bl">Davek + prispevki</div><div class="br muted">− ${f(bruto+skupajBon-zBon.neto)}</div></div>
+          <div class="brow total"><div class="bl" style="font-weight:600">Neto plača</div><div class="br acc">${f(zBon.neto)}</div></div>`;
+      }
+    };
+    BON.calc();
+  }
+};
+
+// ── 3. REDNA VS S.P. ────────────────────────────────────────────
+CALCS['pogodbe'] = {
+  law:'ZDR-1, ZDoh-2, ZPIZ-2',
+  render(){
+    return `
+    <div class="panel">
+      <div class="panel-label">Skupni strošek dela</div>
+      <div class="field"><label>Skupni mesečni strošek (bruto + delodajalčevi prispevki)</label>
+        <div class="inp-wrap has-pfx"><span class="pfx">€</span><input id="pg-strosek" type="text" value="3.000" oninput="fmtInput(this);PG.calc()"></div>
+        <div class="hint">Vnesi skupni strošek delodajalca — t.i. "super bruto"</div>
+      </div>
+      <div class="field"><label>Poslovni stroški s.p. (mesečno)</label>
+        <div class="inp-wrap has-pfx"><span class="pfx">€</span><input id="pg-stroški" type="text" value="300" oninput="fmtInput(this);PG.calc()"></div>
+        <div class="hint">Računovodstvo, material, prevoz, telefon…</div>
+      </div>
+    </div>
+    <div class="breakdown" id="pg-bdown"></div>
+    <p class="disclaimer">S.P. je poenostavljen izračun: prihodek = strošek delodajalca, odštejemo prispevke in davke. Dejanski izid se razlikuje glede na vrsto s.p. in dejanskih stroškov.</p>`;
+  },
+  init(){
+    window.PG={
+      calc(){
+        const skupajStrosek=parseAmt(document.getElementById('pg-strosek').value);
+        const spStroški=parseAmt(document.getElementById('pg-stroški').value);
+        // Redna zaposlitev
+        const przdBruto=skupajStrosek/(1+0.1710); // bruto
+        const rednaRes=brutoNeto(przdBruto);
+        // S.P. (normiranec)
+        const prihodek=skupajStrosek;
+        const spPrzBase=CFG.minPlaca; // prispevki s.p. temeljijo na minimalni osnovi
+        const spPrz=spPrzBase*(CFG.przDelavec.piz+CFG.przDelavec.zz+0.0053+CFG.przDelavec.oskrbo+CFG.przDelod.oskrbo)*12/12;
+        const spDavOsnova=Math.max(0,prihodek-spStroški-spPrz*1);
+        const spDavek=calcDohodnina(spDavOsnova*12,CFG.splosnaOlajsava)/12;
+        const spNeto=prihodek-spPrz-spDavek-spStroški;
+        document.getElementById('pg-bdown').innerHTML=`
+          <div class="brow"><div class="bl" style="font-weight:600">Skupni strošek delodajalca</div><div class="br">${f(skupajStrosek)}</div></div>
+          <div class="brow"><div class="bl">Redna zaposlitev — bruto</div><div class="br muted">${f(przdBruto)}</div></div>
+          <div class="brow"><div class="bl" style="font-weight:600;color:var(--c-davki)">Redna zaposlitev — neto</div><div class="br acc" style="color:var(--c-davki)">${f(rednaRes.neto)}</div></div>
+          <div class="brow"><div class="bl">S.P. — prihodek</div><div class="br muted">${f(prihodek)}</div></div>
+          <div class="brow"><div class="bl">S.P. — prispevki + davek + stroški</div><div class="br muted">− ${f(prihodek-spNeto)}</div></div>
+          <div class="brow"><div class="bl" style="font-weight:600;color:var(--c-placa)">S.P. — neto dohodek</div><div class="br acc" style="color:var(--c-placa)">${f(spNeto)}</div></div>
+          <div class="brow total"><div class="bl">Razlika (S.P. − redna)</div><div class="br acc">${f(spNeto-rednaRes.neto)}</div></div>`;
+      }
+    };
+    PG.calc();
+  }
+};
+
+// ── 4. ODPRAVNINA ────────────────────────────────────────────────
+CALCS['odpravnina'] = {
+  law:'ZDR-1, 108. in 132. člen',
+  render(){
+    return `
+    <div class="panel">
+      <div class="panel-label">Podatki</div>
+      <div class="field"><label>Razlog odpovedi</label>
+        <select id="odp-razlog" onchange="ODP.onRazlog()">
+          <option value="business">Poslovni razlog / tehnološki višek</option>
+          <option value="incapacity">Razlog nesposobnosti</option>
+          <option value="retirement">Upokojitev</option>
+          <option value="worker">Delavec odpoveduje sam</option>
+        </select>
+      </div>
+      <div class="field"><label>Zadnja bruto mesečna plača</label>
+        <div class="inp-wrap has-pfx"><span class="pfx">€</span><input id="odp-placa" type="text" value="1.800" oninput="fmtInput(this);ODP.calc()"></div>
+        <div class="hint">Povprečje zadnjih 3 mesecev pred odpovedjo</div>
+      </div>
+      <div class="field"><label>Leta zaposlitve pri tem delodajalcu</label>
+        <div class="inp-wrap has-sfx"><input id="odp-leta" type="text" value="7" oninput="ODP.calc()"><span class="sfx">let</span></div>
+      </div>
+      <div class="field"><label>Kolektivna pogodba — višji koeficient?</label>
+        <div class="tgl" id="odp-kp">
+          <button class="tgl-btn on" onclick="ODP.setKP(false,this)">Ne (ZDR-1: 1/5)</button>
+          <button class="tgl-btn" onclick="ODP.setKP(true,this)">Da</button>
+        </div>
+      </div>
+      <div class="field" id="odp-kp-field" style="display:none"><label>Koeficient KP</label>
+        <select id="odp-kp-koef" onchange="ODP.calc()">
+          <option value="0.25">1/4 plače / leto</option>
+          <option value="0.333">1/3 plače / leto</option>
+          <option value="0.5">1/2 plače / leto</option>
+        </select>
+      </div>
+    </div>
+    <div class="warn warn-red on" id="odp-w-own">Delavec pri lastni odpovedi <strong>ni upravičen</strong> do odpravnine po ZDR-1 (razen sporazumna odpoved, 79. člen).</div>
+    <div class="warn warn-amber" id="odp-w-leta">Pogoj za odpravnino: <strong>najmanj 2 leti</strong> zaposlitve pri istem delodajalcu.</div>
+    <div class="warn warn-amber" id="odp-w-cap">Odpravnina je omejena na <strong>10-kratnik</strong> zadnje mesečne plače. Znesek je bil samodejno zmanjšan.</div>
+    <div class="warn warn-green" id="odp-w-upokoj">Odpravnina ob upokojitvi (ZDR-1, 132. čl.): 2 × višja od zadnje ali povprečne plače RS — kar je ugodnejše.</div>
+    <div class="result-panel"><div class="result-label">Zakonska odpravnina (bruto)</div><div class="result-amount" id="odp-res">—</div><div class="result-sub" id="odp-sub"></div></div>
+    <div class="breakdown" id="odp-bdown"></div>
+    <p class="disclaimer">ZDR-1, 108. člen. Osnova = povprečna bruto plača zadnjih 3 mesecev. Odpravnina je oproščena dohodnine do zakonskega zneska (ZDoh-2, 44. člen).</p>`;
+  },
+  init(){
+    window.ODP={
+      kp:false,
+      onRazlog(){
+        const r=document.getElementById('odp-razlog').value;
+        document.getElementById('odp-w-own').classList.toggle('on',r==='worker');
+        document.getElementById('odp-w-upokoj').classList.toggle('on',r==='retirement');
+        this.calc();
+      },
+      setKP(val,btn){
+        this.kp=val;
+        document.querySelectorAll('#odp-kp .tgl-btn').forEach(b=>b.classList.remove('on'));
+        btn.classList.add('on');
+        document.getElementById('odp-kp-field').style.display=val?'block':'none';
+        this.calc();
+      },
+      calc(){
+        const placa=parseAmt(document.getElementById('odp-placa').value);
+        const leta=parseFloat(document.getElementById('odp-leta').value.replace(',','.'))||0;
+        const razlog=document.getElementById('odp-razlog').value;
+        if(razlog==='worker'){ document.getElementById('odp-res').textContent='0 €'; document.getElementById('odp-sub').textContent='Ni upravičenosti.'; return; }
+        if(razlog==='retirement'){
+          const znesek=Math.max(2*CFG.povpPlaca, 2*placa);
+          document.getElementById('odp-res').textContent=f(znesek);
+          document.getElementById('odp-sub').innerHTML=`2 × max(${f(placa)}, ${f(CFG.povpPlaca)} povp. RS)`;
+          document.getElementById('odp-w-upokoj').classList.add('on');
+          document.getElementById('odp-bdown').innerHTML='';
+          return;
+        }
+        document.getElementById('odp-w-upokoj').classList.remove('on');
+        const podPogoj=placa>0&&leta<2;
+        document.getElementById('odp-w-leta').classList.toggle('on',podPogoj);
+        if(!placa||leta<2){ document.getElementById('odp-res').textContent='0 €'; document.getElementById('odp-sub').textContent='Pogoj 2 let ni izpolnjen.'; return; }
+        let koef=CFG.odpravninaKoef;
+        if(this.kp) koef=parseFloat(document.getElementById('odp-kp-koef').value);
+        const raw=placa*koef*leta;
+        const cap=placa*CFG.odpravninaMax;
+        const capped=raw>cap;
+        const fin=capped?cap:raw;
+        document.getElementById('odp-w-cap').classList.toggle('on',capped);
+        document.getElementById('odp-res').textContent=f(fin);
+        document.getElementById('odp-sub').innerHTML=`${f(placa)} × ${(koef*100).toFixed(0)} % × ${leta.toFixed(1).replace('.',',')} let${capped?' (kapica)':''}`;
+        document.getElementById('odp-bdown').innerHTML=`
+          <div class="brow"><div class="bl">Osnova (bruto plača)</div><div class="br">${f(placa)}</div></div>
+          <div class="brow"><div class="bl">Koeficient</div><div class="br">${(koef*100).toFixed(0)} % / leto</div></div>
+          <div class="brow"><div class="bl">Leta</div><div class="br">${leta.toFixed(2).replace('.',',')} let</div></div>
+          <div class="brow"><div class="bl">Seštevek pred kapico</div><div class="br">${f(raw)}</div></div>
+          <div class="brow"><div class="bl">Zakonski maksimum (10 × plača)</div><div class="br ${capped?'acc':'muted'}">${f(cap)}</div></div>
+          <div class="brow total"><div class="bl" style="font-weight:600">Odpravnina (bruto)</div><div class="br acc">${f(fin)}</div></div>`;
+      }
+    };
+    ODP.onRazlog(); ODP.calc();
+  }
+};
+
+// ── 5. REGRES ────────────────────────────────────────────────────
+CALCS['regres'] = {
+  law:'ZDR-1, 131. člen; ZMinP',
+  render(){
+    return `
+    <div class="panel">
+      <div class="panel-label">Podatki</div>
+      <div class="field"><label>Bruto mesečna plača</label>
+        <div class="inp-wrap has-pfx"><span class="pfx">€</span><input id="reg-placa" type="text" value="2.000" oninput="fmtInput(this);REG.calc()"></div>
+      </div>
+      <div class="field"><label>Delež delovnega časa</label>
+        <div class="tgl" id="reg-cas">
+          <button class="tgl-btn on" onclick="REG.setCas(1,this)">Polni čas</button>
+          <button class="tgl-btn" onclick="REG.setCas(0.5,this)">50 %</button>
+          <button class="tgl-btn" onclick="REG.setCas(0.75,this)">75 %</button>
+        </div>
+      </div>
+      <div class="field"><label>Meseci zaposlitve v letu</label>
+        <select id="reg-meseci" onchange="REG.calc()">
+          ${[12,11,10,9,8,7,6,5,4,3,2,1].map(m=>`<option value="${m}"${m===12?' selected':''}>${m} mesecev</option>`).join('')}
+        </select>
+        <div class="hint">Sorazmerni izračun za delno leto</div>
+      </div>
+    </div>
+    <div class="result-panel"><div class="result-label">Regres (bruto)</div><div class="result-amount" id="reg-res">—</div><div class="result-sub" id="reg-sub"></div></div>
+    <div class="breakdown" id="reg-bdown"></div>
+    <div class="panel" style="margin-top:1.25rem">
+      <div class="panel-label">Solidarnostna pomoč</div>
+      <p style="font-size:13px;color:var(--ink2);line-height:1.6">Solidarnostna pomoč je neobdavčena do <strong>2× povprečna plača RS = ${f(2*CFG.povpPlaca)}</strong> (2026). Izplača se ob hujši nesreči, bolezni ali naravni nesreči. Odločitev je v diskreciji delodajalca oz. KP.</p>
+    </div>
+    <p class="disclaimer">ZDR-1, 131. člen: regres ne sme biti nižji od minimalne plače. Izplačilo najkasneje do 1. julija.</p>`;
+  },
+  init(){
+    window.REG={
+      cas:1,
+      setCas(v,btn){ this.cas=v; document.querySelectorAll('#reg-cas .tgl-btn').forEach(b=>b.classList.remove('on')); btn.classList.add('on'); this.calc(); },
+      calc(){
+        const meseci=parseInt(document.getElementById('reg-meseci').value)||12;
+        const minRegres=CFG.minPlaca; // zakonski minimum = minimalna plača
+        const soraz=(meseci/12)*this.cas;
+        const znesek=minRegres*soraz;
+        document.getElementById('reg-res').textContent=f(znesek);
+        document.getElementById('reg-sub').innerHTML=`Min. regres ${f(minRegres)} × ${(soraz*100).toFixed(0)} %`;
+        document.getElementById('reg-bdown').innerHTML=`
+          <div class="brow"><div class="bl">Minimalni regres 2026</div><div class="br">${f(minRegres)}</div></div>
+          <div class="brow"><div class="bl">Delež delovnega časa</div><div class="br">${(this.cas*100).toFixed(0)} %</div></div>
+          <div class="brow"><div class="bl">Meseci v letu</div><div class="br">${meseci}/12</div></div>
+          <div class="brow total"><div class="bl" style="font-weight:600">Vaš regres (bruto)</div><div class="br acc">${f(znesek)}</div></div>`;
+      }
+    };
+    REG.calc();
+  }
+};
+
+// ── 6. DOHODNINA ────────────────────────────────────────────────
+CALCS['dohodnina'] = {
+  law:'ZDoh-2, 122. člen — razredi 2026',
+  render(){
+    return `
+    <div class="panel">
+      <div class="panel-label">Letni dohodki</div>
+      <div class="field"><label>Letna bruto plača</label>
+        <div class="inp-wrap has-pfx"><span class="pfx">€</span><input id="doh-placa" type="text" value="24.000" oninput="fmtInput(this);DOH.calc()"></div>
+      </div>
+      <div class="field"><label>Dohodek iz najemnine (letno)</label>
+        <div class="inp-wrap has-pfx"><span class="pfx">€</span><input id="doh-najemnina" type="text" value="0" oninput="fmtInput(this);DOH.calc()"></div>
+      </div>
+      <div class="field"><label>Drugi dohodki (avtorski, drugi viri)</label>
+        <div class="inp-wrap has-pfx"><span class="pfx">€</span><input id="doh-drugi" type="text" value="0" oninput="fmtInput(this);DOH.calc()"></div>
+      </div>
+      <div class="field"><label>Vzdrževani otroci</label>
+        <div class="tgl" id="doh-otroci">
+          ${[0,1,2,3].map(n=>`<button class="tgl-btn${n===0?' on':''}" onclick="DOH.setOtr(${n},this)">${n===3?'3+':n}</button>`).join('')}
+        </div>
+      </div>
+    </div>
+    <div class="result-panel"><div class="result-label">Letna dohodnina</div><div class="result-amount" id="doh-res">—</div><div class="result-sub" id="doh-sub"></div></div>
+    <div class="breakdown" id="doh-bdown"></div>
+    <p class="disclaimer">Poenostavljen izračun po razredih ZDoh-2. Upošteva splošno olajšavo in olajšave za vzdrževane otroke. Ne upošteva vseh posebnih olajšav.</p>`;
+  },
+  init(){
+    window.DOH={
+      otr:0,
+      setOtr(n,btn){ this.otr=n; document.querySelectorAll('#doh-otroci .tgl-btn').forEach(b=>b.classList.remove('on')); btn.classList.add('on'); this.calc(); },
+      calc(){
+        const placa=parseAmt(document.getElementById('doh-placa').value);
+        const najemnina=parseAmt(document.getElementById('doh-najemnina').value);
+        const drugi=parseAmt(document.getElementById('doh-drugi').value);
+        const przD=placa*0.231;
+        const letniDohodek=(placa-przD)+najemnina*(1-0.10)+drugi;
+        let olajsave=CFG.splosnaOlajsava;
+        if(this.otr>=1) olajsave+=CFG.olajsavaOtrok1;
+        if(this.otr>=2) olajsave+=CFG.olajsavaOtrok2;
+        if(this.otr>=3) olajsave+=CFG.olajsavaOtrok3;
+        const davek=calcDohodnina(letniDohodek,olajsave);
+        document.getElementById('doh-res').textContent=f(davek);
+        document.getElementById('doh-sub').innerHTML=`Efektivna stopnja: <strong>${letniDohodek>0?pct(davek/letniDohodek):'—'}</strong>`;
+        document.getElementById('doh-bdown').innerHTML=`
+          <div class="brow"><div class="bl">Skupni letni dohodek</div><div class="br">${f(placa+najemnina+drugi)}</div></div>
+          <div class="brow"><div class="bl">Prispevki in normirani stroški</div><div class="br muted">− ${f(placa+najemnina+drugi-letniDohodek)}</div></div>
+          <div class="brow"><div class="bl">Davčna osnova</div><div class="br">${f(letniDohodek)}</div></div>
+          <div class="brow"><div class="bl">Olajšave</div><div class="br muted">− ${f(olajsave)}</div></div>
+          <div class="brow total"><div class="bl" style="font-weight:600">Letna dohodnina</div><div class="br acc">${f(davek)}</div></div>`;
+      }
+    };
+    DOH.calc();
+  }
+};
+
+// ── 7. DOHODNINA STUDENT ────────────────────────────────────────
+CALCS['dohodnina-st'] = {
+  law:'ZDoh-2 — osebna olajšava za mlade',
+  render(){
+    return `
+    <div class="panel">
+      <div class="panel-label">Dohodki študenta</div>
+      <div class="field"><label>Letni dohodek iz študentskega dela</label>
+        <div class="inp-wrap has-pfx"><span class="pfx">€</span><input id="st-dohodek" type="text" value="6.000" oninput="fmtInput(this);ST.calc()"></div>
+        <div class="hint">Bruto prihodek prek študentske napotnice</div>
+      </div>
+      <div class="field"><label>Drugi letni dohodki (štipendija, najemnina…)</label>
+        <div class="inp-wrap has-pfx"><span class="pfx">€</span><input id="st-drugi" type="text" value="0" oninput="fmtInput(this);ST.calc()"></div>
+      </div>
+    </div>
+    <div class="result-panel"><div class="result-label">Letna dohodnina</div><div class="result-amount" id="st-res">—</div><div class="result-sub" id="st-sub"></div></div>
+    <div class="breakdown" id="st-bdown"></div>
+    <p class="disclaimer">Študent je v dohodninski napovedi upravičen do splošne in posebne osebne olajšave. Dohodek iz študentskega dela se všteva v skupno davčno osnovo.</p>`;
+  },
+  init(){
+    window.ST={
+      calc(){
+        const d=parseAmt(document.getElementById('st-dohodek').value);
+        const drugi=parseAmt(document.getElementById('st-drugi').value);
+        const skupaj=d+drugi;
+        const olajsave=CFG.splosnaOlajsava+CFG.olajsavaStudent;
+        const davek=calcDohodnina(skupaj,olajsave);
+        document.getElementById('st-res').textContent=f(davek);
+        document.getElementById('st-sub').innerHTML=davek===0?'Dohodek pod pragom dohodnine':'Efektivna stopnja: '+pct(davek/skupaj);
+        document.getElementById('st-bdown').innerHTML=`
+          <div class="brow"><div class="bl">Skupni letni dohodek</div><div class="br">${f(skupaj)}</div></div>
+          <div class="brow"><div class="bl">Splošna olajšava</div><div class="br muted">− ${f(CFG.splosnaOlajsava)}</div></div>
+          <div class="brow"><div class="bl">Osebna olajšava (student)</div><div class="br muted">− ${f(CFG.olajsavaStudent)}</div></div>
+          <div class="brow total"><div class="bl" style="font-weight:600">Letna dohodnina</div><div class="br acc">${f(davek)}</div></div>`;
+      }
+    };
+    ST.calc();
+  }
+};
+
+// ── 8. KAPITALSKI DOBIČEK ────────────────────────────────────────
+CALCS['kapital'] = {
+  law:'ZDoh-2, 95.–100. člen',
+  render(){
+    return `
+    <div class="panel">
+      <div class="panel-label">Nakup in prodaja</div>
+      <div class="field"><label>Datum nakupa</label><input type="date" id="kap-nakup" onchange="KAP.calc()"></div>
+      <div class="field"><label>Datum prodaje</label><input type="date" id="kap-prodaja" onchange="KAP.calc()"></div>
+      <div class="field"><label>Nakupna vrednost</label>
+        <div class="inp-wrap has-pfx"><span class="pfx">€</span><input id="kap-in" type="text" value="10.000" oninput="fmtInput(this);KAP.calc()"></div>
+      </div>
+      <div class="field"><label>Prodajna vrednost</label>
+        <div class="inp-wrap has-pfx"><span class="pfx">€</span><input id="kap-out" type="text" value="15.000" oninput="fmtInput(this);KAP.calc()"></div>
+      </div>
+      <div class="field"><label>Stroški nakupa in prodaje (provizije, takse)</label>
+        <div class="inp-wrap has-pfx"><span class="pfx">€</span><input id="kap-stroski" type="text" value="100" oninput="fmtInput(this);KAP.calc()"></div>
+      </div>
+    </div>
+    <div class="warn warn-green on" id="kap-w-exempt" style="display:none"></div>
+    <div class="result-panel"><div class="result-label">Davek na kapitalski dobiček</div><div class="result-amount" id="kap-res">—</div><div class="result-sub" id="kap-sub"></div></div>
+    <div class="breakdown" id="kap-bdown"></div>
+    <p class="disclaimer">ZDoh-2: davčna stopnja se znižuje glede na leta lastništva in po 20 letih pade na 0 %. Izguba se odšteje od dobičkov v istem letu.</p>`;
+  },
+  init(){
+    const today=new Date().toISOString().slice(0,10);
+    document.getElementById('kap-nakup').value='2020-01-15';
+    document.getElementById('kap-prodaja').value=today;
+    window.KAP={
+      calc(){
+        const nakup=new Date(document.getElementById('kap-nakup').value);
+        const prodaja=new Date(document.getElementById('kap-prodaja').value);
+        const vin=parseAmt(document.getElementById('kap-in').value);
+        const vout=parseAmt(document.getElementById('kap-out').value);
+        const str=parseAmt(document.getElementById('kap-stroski').value);
+        const leta=Math.max(0,(prodaja-nakup)/(365.25*24*3600*1000));
+        const dobic=vout-vin-str;
+        if(dobic<=0){ document.getElementById('kap-res').textContent='0 €'; document.getElementById('kap-sub').textContent='Ni dobička — ni davka.'; document.getElementById('kap-bdown').innerHTML=''; return; }
+        let stopnja=0.25;
+        for(const r of CFG.kapitalStopnje) if(leta>=r.leta) stopnja=r.stop;
+        const davek=dobic*stopnja;
+        const w=document.getElementById('kap-w-exempt');
+        w.style.display=stopnja===0?'block':'none';
+        w.textContent='Po 20 letih lastništva je kapitalski dobiček oproščen davka (stopnja 0 %).';
+        w.classList.toggle('on',stopnja===0);
+        document.getElementById('kap-res').textContent=f(davek);
+        document.getElementById('kap-sub').innerHTML=`${(stopnja*100).toFixed(0)} % stopnja · ${leta.toFixed(1).replace('.',',')} let lastništva`;
+        document.getElementById('kap-bdown').innerHTML=`
+          <div class="brow"><div class="bl">Prodajna vrednost</div><div class="br">${f(vout)}</div></div>
+          <div class="brow"><div class="bl">Nabavna vrednost + stroški</div><div class="br muted">− ${f(vin+str)}</div></div>
+          <div class="brow"><div class="bl">Kapitalski dobiček</div><div class="br">${f(dobic)}</div></div>
+          <div class="brow"><div class="bl">Davčna stopnja (${leta.toFixed(0)} let)</div><div class="br">${(stopnja*100).toFixed(0)} %</div></div>
+          <div class="brow total"><div class="bl" style="font-weight:600">Davek</div><div class="br acc">${f(davek)}</div></div>
+          <div class="brow"><div class="bl">Neto dobiček</div><div class="br">${f(dobic-davek)}</div></div>`;
+      }
+    };
+    KAP.calc();
+  }
+};
+
+// ── 9. DAVEK OD NAJEMNINE ────────────────────────────────────────
+CALCS['najemnina-d'] = {
+  law:'ZDoh-2, 75. člen',
+  render(){
+    return `
+    <div class="panel">
+      <div class="panel-label">Podatki o najemnini</div>
+      <div class="field"><label>Mesečna najemnina</label>
+        <div class="inp-wrap has-pfx"><span class="pfx">€</span><input id="nd-mesecna" type="text" value="700" oninput="fmtInput(this);ND.calc()"></div>
+      </div>
+      <div class="field"><label>Način ugotavljanja stroškov</label>
+        <div class="tgl" id="nd-nacin">
+          <button class="tgl-btn on" onclick="ND.setNacin('normiran',this)">Normirani (10 %)</button>
+          <button class="tgl-btn" onclick="ND.setNacin('dejanski',this)">Dejanski stroški</button>
+        </div>
+        <div class="hint">Normirani stroški: 10 % od najemnine. Dejanski: dokaži z računi.</div>
+      </div>
+      <div class="field" id="nd-dejanski-field" style="display:none"><label>Dejanski letni stroški</label>
+        <div class="inp-wrap has-pfx"><span class="pfx">€</span><input id="nd-stros" type="text" value="0" oninput="fmtInput(this);ND.calc()"></div>
+      </div>
+    </div>
+    <div class="result-panel"><div class="result-label">Mesečni davek od najemnine</div><div class="result-amount" id="nd-res">—</div><div class="result-sub" id="nd-sub"></div></div>
+    <div class="breakdown" id="nd-bdown"></div>
+    <p class="disclaimer">ZDoh-2, 75. člen: davčna stopnja je 25 %. Vir dohodka je treba napovedati na FURS.</p>`;
+  },
+  init(){
+    window.ND={
+      nacin:'normiran',
+      setNacin(n,btn){ this.nacin=n; document.querySelectorAll('#nd-nacin .tgl-btn').forEach(b=>b.classList.remove('on')); btn.classList.add('on'); document.getElementById('nd-dejanski-field').style.display=n==='dejanski'?'block':'none'; this.calc(); },
+      calc(){
+        const mesecna=parseAmt(document.getElementById('nd-mesecna').value);
+        const letna=mesecna*12;
+        let stroski;
+        if(this.nacin==='normiran') stroski=letna*0.10;
+        else stroski=parseAmt(document.getElementById('nd-stros').value);
+        const osnova=Math.max(0,letna-stroski);
+        const davekLetni=osnova*0.25;
+        const davekMes=davekLetni/12;
+        const netoMes=mesecna-davekMes;
+        document.getElementById('nd-res').textContent=f(davekMes)+'/mes';
+        document.getElementById('nd-sub').innerHTML=`Letno: <strong>${f(davekLetni)}</strong> · Neto mesečno: <strong>${f(netoMes)}</strong>`;
+        document.getElementById('nd-bdown').innerHTML=`
+          <div class="brow"><div class="bl">Letna najemnina</div><div class="br">${f(letna)}</div></div>
+          <div class="brow"><div class="bl">Stroški (${this.nacin==='normiran'?'10 % normiran':'dejanski'})</div><div class="br muted">− ${f(stroski)}</div></div>
+          <div class="brow"><div class="bl">Davčna osnova</div><div class="br">${f(osnova)}</div></div>
+          <div class="brow total"><div class="bl" style="font-weight:600">Letni davek (25 %)</div><div class="br acc">${f(davekLetni)}</div></div>
+          <div class="brow"><div class="bl">Neto najemnina/mesec</div><div class="br">${f(netoMes)}</div></div>`;
+      }
+    };
+    ND.calc();
+  }
+};
+
+// ── 10. OTROŠKI DODATEK ──────────────────────────────────────────
+CALCS['otroški'] = {
+  law:'ZUPJS, 22. člen — otroški dodatek 2026',
+  render(){
+    return `
+    <div class="panel">
+      <div class="panel-label">Podatki</div>
+      <div class="field"><label>Povprečni mesečni neto dohodek na družinskega člana</label>
+        <div class="inp-wrap has-pfx"><span class="pfx">€</span><input id="od-dohodek" type="text" value="400" oninput="fmtInput(this);OD.calc()"></div>
+        <div class="hint">Skupni neto dohodek gospodinjstva ÷ število članov</div>
+      </div>
+      <div class="field"><label>Število otrok</label>
+        <div class="tgl" id="od-otroci">
+          ${[1,2,3,4].map(n=>`<button class="tgl-btn${n===1?' on':''}" onclick="OD.setN(${n},this)">${n===4?'4+':n}</button>`).join('')}
+        </div>
+      </div>
+    </div>
+    <div class="result-panel"><div class="result-label">Mesečni otroški dodatek</div><div class="result-amount" id="od-res">—</div><div class="result-sub" id="od-sub"></div></div>
+    <div class="breakdown" id="od-bdown"></div>
+    <p class="disclaimer">ZUPJS: znesek se vsako leto uskladi. Prikazani zneski so orientacijski za 2026.</p>`;
+  },
+  init(){
+    window.OD={
+      n:1,
+      setN(v,btn){ this.n=v; document.querySelectorAll('#od-otroci .tgl-btn').forEach(b=>b.classList.remove('on')); btn.classList.add('on'); this.calc(); },
+      calc(){
+        const doh=parseAmt(document.getElementById('od-dohodek').value);
+        let razred=-1;
+        for(let i=0;i<CFG.otroškiRazredi.length;i++){ if(doh<=CFG.otroškiRazredi[i].do){ razred=i; break; } }
+        let skupaj=0, rows='';
+        const osnove=[CFG.otroškiOsnova1,CFG.otroškiOsnova2,CFG.otroškiOsnova3];
+        for(let i=0;i<Math.min(this.n,4);i++){
+          const osn=i<3?osnove[i]:osnove[2];
+          const pctVal=razred>=0?CFG.otroškiRazredi[razred].odstotek:0;
+          const z=osn*pctVal/100;
+          skupaj+=z;
+          rows+=`<div class="brow"><div class="bl">${i+1}. otrok (osnova ${f(osn)})</div><div class="br">${f(z)}</div></div>`;
+        }
+        const pctVal=razred>=0?CFG.otroškiRazredi[razred].odstotek:0;
+        document.getElementById('od-res').textContent=f(skupaj);
+        document.getElementById('od-sub').innerHTML=`${razred+1}. dohodkovni razred · ${pctVal} % od osnove`;
+        document.getElementById('od-bdown').innerHTML=rows+`<div class="brow total"><div class="bl" style="font-weight:600">Skupaj</div><div class="br acc">${f(skupaj)}</div></div>`;
+      }
+    };
+    OD.calc();
+  }
+};
+
+// ── 11. STARŠEVSKO NADOMESTILO ───────────────────────────────────
+CALCS['porodniško'] = {
+  law:'ZSDP-1, 26. člen',
+  render(){
+    return `
+    <div class="panel">
+      <div class="panel-label">Osnova za nadomestilo</div>
+      <div class="field"><label>Povprečna bruto plača v zadnjih 12 mesecih</label>
+        <div class="inp-wrap has-pfx"><span class="pfx">€</span><input id="por-placa" type="text" value="2.000" oninput="fmtInput(this);POR.calc()"></div>
+      </div>
+    </div>
+    <div class="result-panel"><div class="result-label">Mesečno nadomestilo (bruto)</div><div class="result-amount" id="por-res">—</div><div class="result-sub" id="por-sub"></div></div>
+    <div class="breakdown" id="por-bdown"></div>
+    <p class="disclaimer">ZSDP-1: nadomestilo = 100 % osnove, maks. 2,5 × povprečna bruto plača RS. Traja 52 tednov (porodniški + starševski dopust skupaj).</p>`;
+  },
+  init(){
+    window.POR={
+      calc(){
+        const placa=parseAmt(document.getElementById('por-placa').value);
+        const maks=2.5*CFG.povpPlaca;
+        const nado=Math.min(placa,maks);
+        const capped=placa>maks;
+        document.getElementById('por-res').textContent=f(nado);
+        document.getElementById('por-sub').innerHTML=capped?`Omejeno na 2,5 × ${f(CFG.povpPlaca)} povp. plača RS`:'100 % zadnje plače';
+        document.getElementById('por-bdown').innerHTML=`
+          <div class="brow"><div class="bl">Povprečna bruto plača</div><div class="br">${f(placa)}</div></div>
+          <div class="brow"><div class="bl">Maks. nadomestilo (2,5 × povp.)</div><div class="br ${capped?'acc':'muted'}">${f(maks)}</div></div>
+          <div class="brow total"><div class="bl" style="font-weight:600">Nadomestilo/mesec (bruto)</div><div class="br acc">${f(nado)}</div></div>
+          <div class="brow"><div class="bl">Trajanje (porodniška + starševska)</div><div class="br">52 tednov</div></div>
+          <div class="brow"><div class="bl">Skupaj za celotno obdobje</div><div class="br">${f(nado*12)}</div></div>`;
+      }
+    };
+    POR.calc();
+  }
+};
+
+// ── 12. BREZPOSELNOST ────────────────────────────────────────────
+CALCS['brezposelnost'] = {
+  law:'ZUTD, 61.–68. člen',
+  render(){
+    return `
+    <div class="panel">
+      <div class="panel-label">Podatki</div>
+      <div class="field"><label>Povprečna mesečna bruto plača (zadnje 8 mesecev)</label>
+        <div class="inp-wrap has-pfx"><span class="pfx">€</span><input id="bp-placa" type="text" value="1.800" oninput="fmtInput(this);BP.calc()"></div>
+      </div>
+      <div class="field"><label>Skupna delovna doba (leta)</label>
+        <div class="inp-wrap has-sfx"><input id="bp-doba" type="text" value="8" oninput="BP.calc()"><span class="sfx">let</span></div>
+        <div class="hint">Vpliva na trajanje nadomestila</div>
+      </div>
+    </div>
+    <div class="result-panel"><div class="result-label">Mesečno nadomestilo (bruto)</div><div class="result-amount" id="bp-res">—</div><div class="result-sub" id="bp-sub"></div></div>
+    <div class="breakdown" id="bp-bdown"></div>
+    <p class="disclaimer">ZUTD: prvih 3 mesece 80 %, nato 60 % osnove. Osnova = povprečna mesečna plača v zadnjih 8 mesecih. Maks. ${f(CFG.brezposMax)}/mes.</p>`;
+  },
+  init(){
+    window.BP={
+      calc(){
+        const placa=parseAmt(document.getElementById('bp-placa').value);
+        const doba=parseFloat(document.getElementById('bp-doba').value)||0;
+        const n1=Math.min(placa*CFG.brezposOsnovaPct, CFG.brezposMax);
+        const n2=Math.min(placa*CFG.brezposOsnovaPct2, CFG.brezposMax);
+        let trajanje=2;
+        if(doba>=5) trajanje=3; if(doba>=10) trajanje=5; if(doba>=15) trajanje=6; if(doba>=20) trajanje=9; if(doba>=25) trajanje=12;
+        document.getElementById('bp-res').textContent=f(n1);
+        document.getElementById('bp-sub').innerHTML=`Prvih 3 mesece: <strong>${f(n1)}</strong> · nato: <strong>${f(n2)}</strong>`;
+        document.getElementById('bp-bdown').innerHTML=`
+          <div class="brow"><div class="bl">Osnova (povpr. plača)</div><div class="br">${f(placa)}</div></div>
+          <div class="brow"><div class="bl">Prvih 3 mesece (80 %)</div><div class="br acc">${f(n1)}</div></div>
+          <div class="brow"><div class="bl">Nato (60 %)</div><div class="br">${f(n2)}</div></div>
+          <div class="brow"><div class="bl">Maksimum</div><div class="br muted">${f(CFG.brezposMax)}</div></div>
+          <div class="brow total"><div class="bl" style="font-weight:600">Trajanje (${doba} let dobe)</div><div class="br">${trajanje} mesecev</div></div>`;
+      }
+    };
+    BP.calc();
+  }
+};
+
+// ── 13. VRTEC ────────────────────────────────────────────────────
+CALCS['vrtec'] = {
+  law:'ZUPJS, 28. člen — subvencija vrtca',
+  render(){
+    return `
+    <div class="panel">
+      <div class="panel-label">Podatki</div>
+      <div class="field"><label>Povprečni mesečni neto dohodek na člana</label>
+        <div class="inp-wrap has-pfx"><span class="pfx">€</span><input id="vr-doh" type="text" value="500" oninput="fmtInput(this);VR.calc()"></div>
+      </div>
+      <div class="field"><label>Starostno obdobje otroka</label>
+        <div class="tgl" id="vr-per">
+          <button class="tgl-btn on" onclick="VR.setPer(1,this)">1–3 leta (višja cena)</button>
+          <button class="tgl-btn" onclick="VR.setPer(2,this)">3–6 let</button>
+        </div>
+      </div>
+      <div class="field"><label>Mesečna cena programa vrtca</label>
+        <div class="inp-wrap has-pfx"><span class="pfx">€</span><input id="vr-cena" type="text" value="490" oninput="fmtInput(this);VR.calc()"></div>
+        <div class="hint">Ceno določi vsaka občina posebej. Povprečje: 1. obdobje ~490 €, 2. obdobje ~400 €.</div>
+      </div>
+    </div>
+    <div class="result-panel"><div class="result-label">Vaš mesečni prispevek</div><div class="result-amount" id="vr-res">—</div><div class="result-sub" id="vr-sub"></div></div>
+    <div class="breakdown" id="vr-bdown"></div>
+    <p class="disclaimer">ZUPJS: prispevek staršev je odvisen od dohodkovnega razreda. 2. in vsak naslednji otrok v vrtcu hkrati je brezplačen (ZUPJS, 28a. člen).</p>`;
+  },
+  init(){
+    window.VR={
+      per:1,
+      setPer(v,btn){ this.per=v; document.getElementById('vr-cena').value=v===1?'490':'400'; document.querySelectorAll('#vr-per .tgl-btn').forEach(b=>b.classList.remove('on')); btn.classList.add('on'); this.calc(); },
+      calc(){
+        const doh=parseAmt(document.getElementById('vr-doh').value);
+        const cena=parseAmt(document.getElementById('vr-cena').value);
+        let razred=6, pctVal=CFG.vrtecRazredi[6].pct;
+        for(let i=0;i<CFG.vrtecRazredi.length;i++){ if(doh<=CFG.vrtecRazredi[i].do){ razred=i; pctVal=CFG.vrtecRazredi[i].pct; break; } }
+        const prispevek=cena*pctVal/100;
+        const subvencija=cena-prispevek;
+        document.getElementById('vr-res').textContent=f(prispevek);
+        document.getElementById('vr-sub').innerHTML=`${razred+1}. razred · ${pctVal} % od cene programa · subvencija: <strong>${f(subvencija)}</strong>`;
+        document.getElementById('vr-bdown').innerHTML=`
+          <div class="brow"><div class="bl">Cena programa</div><div class="br">${f(cena)}</div></div>
+          <div class="brow"><div class="bl">Dohodkovni razred</div><div class="br">${razred+1}. razred</div></div>
+          <div class="brow"><div class="bl">Vaš delež</div><div class="br">${pctVal} %</div></div>
+          <div class="brow"><div class="bl">Subvencija države</div><div class="br acc">${f(subvencija)}</div></div>
+          <div class="brow total"><div class="bl" style="font-weight:600">Vaš mesečni prispevek</div><div class="br acc">${f(prispevek)}</div></div>`;
+      }
+    };
+    VR.calc();
+  }
+};
+
+// ── 14. BOLNIŠKA ─────────────────────────────────────────────────
+CALCS['bolniška'] = {
+  law:'ZZVZZ, 31. člen; ZDR-1',
+  render(){
+    return `
+    <div class="panel">
+      <div class="panel-label">Podatki</div>
+      <div class="field"><label>Bruto mesečna plača</label>
+        <div class="inp-wrap has-pfx"><span class="pfx">€</span><input id="bol-placa" type="text" value="1.800" oninput="fmtInput(this);BOL.calc()"></div>
+      </div>
+      <div class="field"><label>Razlog bolniške</label>
+        <select id="bol-razlog" onchange="BOL.calc()">
+          <option value="80">Bolezen (80 %) — breme delodajalca prvih 30 dni</option>
+          <option value="100-poklicna">Poklicna bolezen / poškodba pri delu (100 %) — ZZZS</option>
+          <option value="100-nega">Nega otroka / drug. člana (100 %) — ZZZS</option>
+          <option value="90">Poškodba izven dela (90 %) — ZZZS</option>
+        </select>
+      </div>
+      <div class="field"><label>Število dni bolniške</label>
+        <div class="inp-wrap has-sfx"><input id="bol-dnevi" type="text" value="14" oninput="BOL.calc()"><span class="sfx">dni</span></div>
+      </div>
+    </div>
+    <div class="result-panel"><div class="result-label">Nadomestilo za obdobje</div><div class="result-amount" id="bol-res">—</div><div class="result-sub" id="bol-sub"></div></div>
+    <div class="breakdown" id="bol-bdown"></div>
+    <p class="disclaimer">ZZVZZ, 31. člen. Prvih 30 delovnih dni boli delodajalec, od 31. dne ZZZS. Osnova = povprečna plača zadnjih 12 mesecev.</p>`;
+  },
+  init(){
+    window.BOL={
+      calc(){
+        const placa=parseAmt(document.getElementById('bol-placa').value);
+        const razlog=document.getElementById('bol-razlog').value;
+        const dnevi=parseInt(document.getElementById('bol-dnevi').value)||0;
+        let pctVal=0.80, bremeDni=30;
+        if(razlog.startsWith('100')) pctVal=1.00;
+        else if(razlog==='90') pctVal=0.90;
+        const dnevnaOsnova=placa/21; // delovni dnevi v mesecu
+        const nado=dnevnaOsnova*pctVal*dnevi;
+        const delodajalec=Math.min(dnevi,bremeDni);
+        const zzzs=Math.max(0,dnevi-bremeDni);
+        document.getElementById('bol-res').textContent=f(nado);
+        document.getElementById('bol-sub').innerHTML=`${(pctVal*100).toFixed(0)} % dnevne osnove × ${dnevi} dni`;
+        document.getElementById('bol-bdown').innerHTML=`
+          <div class="brow"><div class="bl">Dnevna osnova (plača ÷ 21)</div><div class="br">${fp(dnevnaOsnova)}</div></div>
+          <div class="brow"><div class="bl">Stopnja nadomestila</div><div class="br">${(pctVal*100).toFixed(0)} %</div></div>
+          <div class="brow"><div class="bl">Breme delodajalca (do 30 dni)</div><div class="br">${delodajalec} dni = ${f(dnevnaOsnova*pctVal*delodajalec)}</div></div>
+          ${zzzs>0?`<div class="brow"><div class="bl">Breme ZZZS (od 31. dne)</div><div class="br">${zzzs} dni = ${f(dnevnaOsnova*pctVal*zzzs)}</div></div>`:''}
+          <div class="brow total"><div class="bl" style="font-weight:600">Skupno nadomestilo</div><div class="br acc">${f(nado)}</div></div>`;
+      }
+    };
+    BOL.calc();
+  }
+};
+
+// ── 15. AMORTIZACIJA ─────────────────────────────────────────────
+CALCS['amortizacija'] = {
+  law:'ZPotK-1 — Zakon o potrošniških kreditih',
+  render(){
+    return `
+    <div class="panel">
+      <div class="panel-label">Podatki o kreditu</div>
+      <div class="field"><label>Znesek kredita</label>
+        <div class="inp-wrap has-pfx"><span class="pfx">€</span><input id="am-znesek" type="text" value="150.000" oninput="fmtInput(this);AM.calc()"></div>
+      </div>
+      <div class="field"><label>Letna obrestna mera</label>
+        <div class="inp-wrap has-sfx"><input id="am-obrest" type="text" value="4,5" oninput="AM.calc()"><span class="sfx">%</span></div>
+      </div>
+      <div class="field"><label>Doba odplačila</label>
+        <select id="am-doba" onchange="AM.calc()">
+          ${[5,10,15,20,25,30].map(y=>`<option value="${y}"${y===20?' selected':''}>${y} let</option>`).join('')}
+        </select>
+      </div>
+      <div class="field"><label>Stroški odobritve in zavarovanje (enkratni)</label>
+        <div class="inp-wrap has-pfx"><span class="pfx">€</span><input id="am-stros" type="text" value="500" oninput="fmtInput(this);AM.calc()"></div>
+      </div>
+    </div>
+    <div class="result-panel"><div class="result-label">Mesečni obrok</div><div class="result-amount" id="am-obrok">—</div><div class="result-sub" id="am-sub"></div></div>
+    <div class="breakdown" id="am-bdown"></div>
+    <p class="disclaimer">Anuiteta z enakimi mesečnimi obroki. EOM (efektivna obrestna mera) upošteva stroške odobritve.</p>`;
+  },
+  init(){
+    window.AM={
+      calc(){
+        const S=parseAmt(document.getElementById('am-znesek').value);
+        const rL=parseFloat((document.getElementById('am-obrest').value||'').replace(',','.'))/100||0;
+        const n=parseInt(document.getElementById('am-doba').value)*12;
+        const stros=parseAmt(document.getElementById('am-stros').value);
+        if(!S||!rL||!n){ document.getElementById('am-obrok').textContent='—'; return; }
+        const r=rL/12;
+        const obrok=S*r*Math.pow(1+r,n)/(Math.pow(1+r,n)-1);
+        const skupaj=obrok*n;
+        const obresti=skupaj-S;
+        // EOM (approximation)
+        const eom=rL*1.02+stros/(S*n/12)/12;
+        document.getElementById('am-obrok').textContent=fp(obrok);
+        document.getElementById('am-sub').innerHTML=`EOM: <strong>${(eom*100).toFixed(2).replace('.',',')} %</strong>`;
+        document.getElementById('am-bdown').innerHTML=`
+          <div class="brow"><div class="bl">Znesek kredita</div><div class="br">${f(S)}</div></div>
+          <div class="brow"><div class="bl">Skupaj obresti</div><div class="br muted">${f(obresti)}</div></div>
+          <div class="brow"><div class="bl">Stroški odobritve</div><div class="br muted">${f(stros)}</div></div>
+          <div class="brow total"><div class="bl" style="font-weight:600">Skupni strošek kredita</div><div class="br acc">${f(skupaj+stros)}</div></div>
+          <div class="brow"><div class="bl">Razmerje obresti/glavnica</div><div class="br">${pct(obresti/S)}</div></div>`;
+      }
+    };
+    AM.calc();
+  }
+};
+
+// ── 16. PRIMERJAVA KREDITOV ──────────────────────────────────────
+CALCS['banke'] = {
+  law:'ZPotK-1',
+  render(){
+    return `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+      <div class="panel"><div class="panel-label">Kredit A</div>
+        <div class="field"><label>Znesek (€)</label><div class="inp-wrap has-pfx"><span class="pfx">€</span><input id="ba-z" type="text" value="100.000" oninput="fmtInput(this);BA.calc()"></div></div>
+        <div class="field"><label>Obrestna mera</label><div class="inp-wrap has-sfx"><input id="ba-r" type="text" value="4,2" oninput="BA.calc()"><span class="sfx">%</span></div></div>
+        <div class="field"><label>Doba</label><select id="ba-d" onchange="BA.calc()">${[5,10,15,20,25,30].map(y=>`<option${y===20?' selected':''}>${y}</option>`).join('')}</select></div>
+        <div class="field"><label>Enkratni stroški (€)</label><div class="inp-wrap has-pfx"><span class="pfx">€</span><input id="ba-s" type="text" value="400" oninput="fmtInput(this);BA.calc()"></div></div>
+      </div>
+      <div class="panel"><div class="panel-label">Kredit B</div>
+        <div class="field"><label>Znesek (€)</label><div class="inp-wrap has-pfx"><span class="pfx">€</span><input id="bb-z" type="text" value="100.000" oninput="fmtInput(this);BA.calc()"></div></div>
+        <div class="field"><label>Obrestna mera</label><div class="inp-wrap has-sfx"><input id="bb-r" type="text" value="4,8" oninput="BA.calc()"><span class="sfx">%</span></div></div>
+        <div class="field"><label>Doba</label><select id="bb-d" onchange="BA.calc()">${[5,10,15,20,25,30].map(y=>`<option${y===20?' selected':''}>${y}</option>`).join('')}</select></div>
+        <div class="field"><label>Enkratni stroški (€)</label><div class="inp-wrap has-pfx"><span class="pfx">€</span><input id="bb-s" type="text" value="200" oninput="fmtInput(this);BA.calc()"></div></div>
+      </div>
+    </div>
+    <div class="breakdown" id="ba-bdown"></div>`;
+  },
+  init(){
+    window.BA={
+      calcObrok(S,rL,n){ const r=rL/12; return S*r*Math.pow(1+r,n)/(Math.pow(1+r,n)-1); },
+      calc(){
+        const getData=(pf)=>{
+          const S=parseAmt(document.getElementById(pf+'-z').value);
+          const rL=parseFloat((document.getElementById(pf+'-r').value||'').replace(',','.'))/100||0;
+          const n=parseInt(document.getElementById(pf+'-d').value)*12;
+          const stros=parseAmt(document.getElementById(pf+'-s').value);
+          const obrok=this.calcObrok(S,rL,n);
+          return {S,rL,n,stros,obrok,skupaj:obrok*n+stros};
+        };
+        const a=getData('ba'), b=getData('bb');
+        const dif=b.skupaj-a.skupaj;
+        document.getElementById('ba-bdown').innerHTML=`
+          <div class="brow"><div class="bl" style="font-weight:600">Kredit A — mesečni obrok</div><div class="br acc">${fp(a.obrok)}</div></div>
+          <div class="brow"><div class="bl">Kredit A — skupni strošek</div><div class="br">${f(a.skupaj)}</div></div>
+          <div class="brow"><div class="bl" style="font-weight:600">Kredit B — mesečni obrok</div><div class="br acc">${fp(b.obrok)}</div></div>
+          <div class="brow"><div class="bl">Kredit B — skupni strošek</div><div class="br">${f(b.skupaj)}</div></div>
+          <div class="brow total"><div class="bl" style="font-weight:600">${dif>0?'Kredit A cenejši za':'Kredit B cenejši za'}</div><div class="br acc">${f(Math.abs(dif))}</div></div>`;
+      }
+    };
+    BA.calc();
+  }
+};
+
+// ── 17. PREDČASNO ODPLAČILO ──────────────────────────────────────
+CALCS['predcasno'] = {
+  law:'ZPotK-1, 26. člen',
+  render(){
+    return `
+    <div class="panel">
+      <div class="panel-label">Trenutni kredit</div>
+      <div class="field"><label>Preostala glavnica</label>
+        <div class="inp-wrap has-pfx"><span class="pfx">€</span><input id="pc-os" type="text" value="80.000" oninput="fmtInput(this);PC.calc()"></div>
+      </div>
+      <div class="field"><label>Letna obrestna mera</label>
+        <div class="inp-wrap has-sfx"><input id="pc-r" type="text" value="4,5" oninput="PC.calc()"><span class="sfx">%</span></div>
+      </div>
+      <div class="field"><label>Preostala doba odplačila</label>
+        <select id="pc-d" onchange="PC.calc()">${[1,2,3,4,5,7,10,15,20].map(y=>`<option value="${y}"${y===15?' selected':''}>${y} let</option>`).join('')}</select>
+      </div>
+      <div class="field"><label>Enkratno predčasno plačilo</label>
+        <div class="inp-wrap has-pfx"><span class="pfx">€</span><input id="pc-pp" type="text" value="10.000" oninput="fmtInput(this);PC.calc()"></div>
+      </div>
+    </div>
+    <div class="result-panel"><div class="result-label">Prihranek pri obrestih</div><div class="result-amount" id="pc-res">—</div><div class="result-sub" id="pc-sub"></div></div>
+    <div class="breakdown" id="pc-bdown"></div>
+    <p class="disclaimer">ZPotK-1: pri predčasnem odplačilu sme banka zaračunati provizijo do 1 % preostalega zneska (max 0,5 % v zadnjem letu). Upoštevaj to pri odločitvi.</p>`;
+  },
+  init(){
+    window.PC={
+      calc(){
+        const os=parseAmt(document.getElementById('pc-os').value);
+        const rL=parseFloat((document.getElementById('pc-r').value||'').replace(',','.'))/100||0;
+        const n=parseInt(document.getElementById('pc-d').value)*12;
+        const pp=parseAmt(document.getElementById('pc-pp').value);
+        if(!os||!rL||!n){ document.getElementById('pc-res').textContent='—'; return; }
+        const r=rL/12;
+        const obrok=os*r*Math.pow(1+r,n)/(Math.pow(1+r,n)-1);
+        const obsSkupaj=obrok*n;
+        const novaOs=Math.max(0,os-pp);
+        const noviObrok=novaOs*r*Math.pow(1+r,n)/(Math.pow(1+r,n)-1);
+        const novSkupaj=noviObrok*n;
+        const prihranak=obsSkupaj-novSkupaj-pp;
+        document.getElementById('pc-res').textContent=f(Math.max(0,prihranak));
+        document.getElementById('pc-sub').innerHTML=`Mesečni obrok: ${fp(obrok)} → ${fp(noviObrok)}`;
+        document.getElementById('pc-bdown').innerHTML=`
+          <div class="brow"><div class="bl">Skupaj obresti brez predplačila</div><div class="br muted">${f(obsSkupaj-os)}</div></div>
+          <div class="brow"><div class="bl">Skupaj obresti po predplačilu</div><div class="br muted">${f(novSkupaj-novaOs)}</div></div>
+          <div class="brow total"><div class="bl" style="font-weight:600">Prihranek pri obrestih</div><div class="br acc">${f(Math.max(0,obsSkupaj-os-(novSkupaj-novaOs)))}</div></div>`;
+      }
+    };
+    PC.calc();
+  }
+};
+
+// ── 18. LEASING VS KREDIT ────────────────────────────────────────
+CALCS['leasing'] = {
+  law:'SRS 1 — Leasing',
+  render(){
+    return `
+    <div class="panel">
+      <div class="panel-label">Vrednost vozila</div>
+      <div class="field"><label>Nabavna vrednost</label>
+        <div class="inp-wrap has-pfx"><span class="pfx">€</span><input id="le-v" type="text" value="25.000" oninput="fmtInput(this);LE.calc()"></div>
+      </div>
+      <div class="field"><label>Lastna udeležba / akontacija</label>
+        <div class="inp-wrap has-pfx"><span class="pfx">€</span><input id="le-a" type="text" value="5.000" oninput="fmtInput(this);LE.calc()"></div>
+      </div>
+      <div class="field"><label>Doba financiranja</label>
+        <select id="le-d" onchange="LE.calc()">${[3,4,5,6].map(y=>`<option value="${y}"${y===5?' selected':''}>${y} leta</option>`).join('')}</select>
+      </div>
+    </div>
+    <div class="breakdown" id="le-bdown"></div>
+    <p class="disclaimer">Leasing in kredit sta samo orientacijska primerjava. Dejanski pogoji se razlikujejo med ponudniki. Leasing ima po navadi nižje mesečne obveznosti a višji skupni strošek.</p>`;
+  },
+  init(){
+    window.LE={
+      calc(){
+        const v=parseAmt(document.getElementById('le-v').value);
+        const a=parseAmt(document.getElementById('le-a').value);
+        const n=parseInt(document.getElementById('le-d').value)*12;
+        const fin=v-a;
+        const rKredit=0.055/12, rLeasing=0.065/12;
+        const obrokK=fin*rKredit*Math.pow(1+rKredit,n)/(Math.pow(1+rKredit,n)-1);
+        const obrokL=fin*rLeasing*Math.pow(1+rLeasing,n)/(Math.pow(1+rLeasing,n)-1);
+        const skK=obrokK*n+a, skL=obrokL*n+a;
+        document.getElementById('le-bdown').innerHTML=`
+          <div class="brow"><div class="bl">Financiran znesek</div><div class="br">${f(fin)}</div></div>
+          <div class="brow"><div class="bl" style="font-weight:600">Kredit — mesečni obrok (~5,5 %)</div><div class="br acc">${fp(obrokK)}</div></div>
+          <div class="brow"><div class="bl">Kredit — skupni strošek</div><div class="br">${f(skK)}</div></div>
+          <div class="brow"><div class="bl" style="font-weight:600">Leasing — mesečni obrok (~6,5 %)</div><div class="br acc">${fp(obrokL)}</div></div>
+          <div class="brow"><div class="bl">Leasing — skupni strošek</div><div class="br">${f(skL)}</div></div>
+          <div class="brow"><div class="bl">Gotovina — skupni strošek</div><div class="br muted">${f(v)} (ni obresti)</div></div>
+          <div class="brow total"><div class="bl" style="font-weight:600">Kredit je cenejši od leasinga za</div><div class="br acc">${f(skL-skK)}</div></div>`;
+      }
+    };
+    LE.calc();
+  }
+};
+
+// ── 19. STROŠKI NAKUPA NEPREMIČNINE ──────────────────────────────
+CALCS['nakup'] = {
+  law:'ZDavNepr, ZST-1, Notarska tarifa',
+  render(){
+    return `
+    <div class="panel">
+      <div class="panel-label">Podatki o nakupu</div>
+      <div class="field"><label>Vrsta nepremičnine</label>
+        <div class="tgl" id="nk-tip">
+          <button class="tgl-btn on" onclick="NK.setTip('used',this)">Rabljena</button>
+          <button class="tgl-btn" onclick="NK.setTip('new',this)">Novogradnja</button>
+        </div>
+      </div>
+      <div class="field"><label>Pogodbena vrednost</label>
+        <div class="inp-wrap has-pfx"><span class="pfx">€</span><input id="nk-cena" type="text" value="200.000" oninput="fmtInput(this);NK.calc()"></div>
+      </div>
+      <div class="field"><label>Agencijska provizija</label>
+        <select id="nk-ag" onchange="NK.calc()">
+          <option value="0">Brez agencije</option>
+          <option value="2" selected>2 % + DDV</option>
+          <option value="3">3 % + DDV</option>
+          <option value="4">4 % + DDV</option>
+        </select>
+      </div>
+      <div class="field"><label>Kredit (hipoteka)?</label>
+        <div class="tgl" id="nk-hip">
+          <button class="tgl-btn on" onclick="NK.setHip(false,this)">Ne</button>
+          <button class="tgl-btn" onclick="NK.setHip(true,this)">Da</button>
+        </div>
+      </div>
+    </div>
+    <div class="warn warn-amber on" id="nk-ddv-w" style="display:none">Pri novogradnji se plača DDV 22 % — ta je po navadi vključen v kupnino, preverite z razvijalcem.</div>
+    <div class="result-panel"><div class="result-label">Skupni dodatni stroški</div><div class="result-amount" id="nk-res">—</div><div class="result-sub" id="nk-sub"></div></div>
+    <div class="breakdown" id="nk-bdown"></div>
+    <p class="disclaimer">ZDavNepr: DPN 2 % je obveznost kupca. Notarska tarifa po Ur. l. RS 54/2022. Sodna taksa po ZST-1, tar. št. 1111.</p>`;
+  },
+  init(){
+    window.NK={
+      tip:'used', hip:false,
+      setTip(v,btn){ this.tip=v; document.querySelectorAll('#nk-tip .tgl-btn').forEach(b=>b.classList.remove('on')); btn.classList.add('on'); document.getElementById('nk-ddv-w').style.display=v==='new'?'block':'none'; this.calc(); },
+      setHip(v,btn){ this.hip=v; document.querySelectorAll('#nk-hip .tgl-btn').forEach(b=>b.classList.remove('on')); btn.classList.add('on'); this.calc(); },
+      calc(){
+        const cena=parseAmt(document.getElementById('nk-cena').value);
+        const agPct=parseFloat(document.getElementById('nk-ag').value);
+        const dpn=this.tip==='used'?cena*CFG.dpn:0;
+        const ag=cena*agPct/100*(1+CFG.ddv);
+        const not=calcNotary(cena);
+        const notHip=this.hip?calcNotary(cena*0.7).total*0.6:0;
+        const sod=calcSodnaTaksa(cena);
+        const sodHip=this.hip?calcSodnaTaksa(cena*0.7):0;
+        const skupaj=dpn+ag+not.total+notHip+sod+sodHip;
+        document.getElementById('nk-res').textContent=f(skupaj);
+        document.getElementById('nk-sub').innerHTML=`Skupaj s kupnino: <strong>${f(cena+skupaj)}</strong> · ${pct(skupaj/cena)} nad ceno`;
+        document.getElementById('nk-bdown').innerHTML=`
+          ${this.tip==='used'?`<div class="brow"><div class="bl">DPN (2 %) — zakon</div><div class="br">${f(dpn)}</div></div>`:''}
+          ${ag>0?`<div class="brow"><div class="bl">Agencija (${agPct} % + DDV)</div><div class="br">${f(ag)}</div></div>`:''}
+          <div class="brow"><div class="bl">Notar (KPP + DDV)</div><div class="br">${f(not.total)}</div></div>
+          ${this.hip?`<div class="brow"><div class="bl">Notar — hipotekarna listina</div><div class="br">${f(notHip)}</div></div>`:''}
+          <div class="brow"><div class="bl">Sodna taksa — vknjižba lastnine</div><div class="br">${f(sod)}</div></div>
+          ${this.hip?`<div class="brow"><div class="bl">Sodna taksa — hipoteka</div><div class="br">${f(sodHip)}</div></div>`:''}
+          <div class="brow total"><div class="bl" style="font-weight:600">Skupni dodatni stroški</div><div class="br acc">${f(skupaj)}</div></div>`;
+      }
+    };
+    NK.calc();
+  }
+};
+
+// ── 20. NAJEMNINA VS NAKUP ───────────────────────────────────────
+CALCS['najkup'] = {
+  law:'Orientacijski izračun',
+  render(){
+    return `
+    <div class="panel">
+      <div class="panel-label">Parametri</div>
+      <div class="field"><label>Vrednost nepremičnine</label>
+        <div class="inp-wrap has-pfx"><span class="pfx">€</span><input id="nj-v" type="text" value="200.000" oninput="fmtInput(this);NJ.calc()"></div>
+      </div>
+      <div class="field"><label>Mesečna najemnina (primerljivo stanovanje)</label>
+        <div class="inp-wrap has-pfx"><span class="pfx">€</span><input id="nj-r" type="text" value="800" oninput="fmtInput(this);NJ.calc()"></div>
+      </div>
+      <div class="field"><label>Pričakovana letna rast vrednosti nepremičnine</label>
+        <div class="inp-wrap has-sfx"><input id="nj-g" type="text" value="3" oninput="NJ.calc()"><span class="sfx">%</span></div>
+      </div>
+      <div class="field"><label>Obrestna mera kredita</label>
+        <div class="inp-wrap has-sfx"><input id="nj-ir" type="text" value="4,5" oninput="NJ.calc()"><span class="sfx">%</span></div>
+      </div>
+    </div>
+    <div class="result-panel"><div class="result-label">Breakeven — kdaj se izplača kupiti</div><div class="result-amount" id="nj-res">—</div><div class="result-sub" id="nj-sub"></div></div>
+    <div class="breakdown" id="nj-bdown"></div>`;
+  },
+  init(){
+    window.NJ={
+      calc(){
+        const v=parseAmt(document.getElementById('nj-v').value);
+        const r=parseAmt(document.getElementById('nj-r').value);
+        const g=parseFloat((document.getElementById('nj-g').value||'').replace(',','.'))/100||0;
+        const ir=parseFloat((document.getElementById('nj-ir').value||'').replace(',','.'))/100||0;
+        const letnaObremen=v*(ir+0.01+0.005-g); // kredit + vzdrž + zavarovanje - apreciacija
+        const letnaRes=r*12;
+        const be=v*0.05/Math.max(0.001,letnaRes-v*(ir-g));
+        const price2rent=v/(r*12);
+        document.getElementById('nj-res').textContent=Math.round(Math.max(1,be))+' let';
+        document.getElementById('nj-sub').innerHTML=`Razmerje cena/najemnina: <strong>${price2rent.toFixed(0)}×</strong> ${price2rent<20?'(ugodno za nakup)':'(ugodno za najemnino)'}`;
+        document.getElementById('nj-bdown').innerHTML=`
+          <div class="brow"><div class="bl">Letni strošek najemnine</div><div class="br">${f(letnaRes)}</div></div>
+          <div class="brow"><div class="bl">Letni strošek lastništva (obresti+vzdrž.−apre.)</div><div class="br">${f(letnaObremen)}</div></div>
+          <div class="brow"><div class="bl">Razmerje cena / letna najemnina</div><div class="br">${price2rent.toFixed(1)}×</div></div>
+          <div class="brow total"><div class="bl" style="font-weight:600">Breakeven (orientacijsko)</div><div class="br acc">${Math.round(Math.max(1,be))} let</div></div>`;
+      }
+    };
+    NJ.calc();
+  }
+};
+
+// ── 21. DONOSNOST ODDAJANJA ───────────────────────────────────────
+CALCS['donosnost'] = {
+  law:'ZDoh-2, 75. člen',
+  render(){
+    return `
+    <div class="panel">
+      <div class="panel-label">Podatki</div>
+      <div class="field"><label>Vrednost nepremičnine</label>
+        <div class="inp-wrap has-pfx"><span class="pfx">€</span><input id="do-v" type="text" value="180.000" oninput="fmtInput(this);DO.calc()"></div>
+      </div>
+      <div class="field"><label>Mesečna najemnina</label>
+        <div class="inp-wrap has-pfx"><span class="pfx">€</span><input id="do-r" type="text" value="700" oninput="fmtInput(this);DO.calc()"></div>
+      </div>
+      <div class="field"><label>Letni stroški vzdrževanja</label>
+        <div class="inp-wrap has-pfx"><span class="pfx">€</span><input id="do-s" type="text" value="800" oninput="fmtInput(this);DO.calc()"></div>
+      </div>
+      <div class="field"><label>Meseci zasedenosti v letu</label>
+        <select id="do-m" onchange="DO.calc()">${[12,11,10,9].map(m=>`<option value="${m}"${m===11?' selected':''}>${m} mesecev</option>`).join('')}</select>
+      </div>
+    </div>
+    <div class="result-panel"><div class="result-label">Neto donos</div><div class="result-amount" id="do-res">—</div><div class="result-sub" id="do-sub"></div></div>
+    <div class="breakdown" id="do-bdown"></div>`;
+  },
+  init(){
+    window.DO={
+      calc(){
+        const v=parseAmt(document.getElementById('do-v').value);
+        const r=parseAmt(document.getElementById('do-r').value);
+        const s=parseAmt(document.getElementById('do-s').value);
+        const m=parseInt(document.getElementById('do-m').value);
+        const letna=r*m;
+        const davOsnova=letna*(1-0.10);
+        const davek=davOsnova*0.25;
+        const neto=letna-davek-s;
+        const donos=v>0?(neto/v)*100:0;
+        document.getElementById('do-res').textContent=donos.toFixed(2).replace('.',',')+' %';
+        document.getElementById('do-sub').innerHTML=`Neto letni dohodek: <strong>${f(neto)}</strong>`;
+        document.getElementById('do-bdown').innerHTML=`
+          <div class="brow"><div class="bl">Letna najemnina (${m} mes.)</div><div class="br">${f(letna)}</div></div>
+          <div class="brow"><div class="bl">Davek od najemnine (25 %)</div><div class="br muted">− ${f(davek)}</div></div>
+          <div class="brow"><div class="bl">Vzdrževanje</div><div class="br muted">− ${f(s)}</div></div>
+          <div class="brow total"><div class="bl" style="font-weight:600">Neto letni dohodek</div><div class="br acc">${f(neto)}</div></div>
+          <div class="brow"><div class="bl">Bruto donos</div><div class="br">${((letna/v)*100).toFixed(2).replace('.',',')} %</div></div>
+          <div class="brow"><div class="bl">Neto donos</div><div class="br">${donos.toFixed(2).replace('.',',')} %</div></div>`;
+      }
+    };
+    DO.calc();
+  }
+};
+
+// ── 22. NPB ──────────────────────────────────────────────────────
+CALCS['npb'] = {
+  law:'Zakon o NPB — Neprofitna stanovanjska posojila',
+  render(){
+    return `
+    <div class="panel">
+      <div class="panel-label">Podatki</div>
+      <div class="field"><label>Vrednost nepremičnine</label>
+        <div class="inp-wrap has-pfx"><span class="pfx">€</span><input id="npb-v" type="text" value="200.000" oninput="fmtInput(this);NPB.calc()"></div>
+      </div>
+      <div class="field"><label>Lastna udeležba (min. 10 %)</label>
+        <div class="inp-wrap has-pfx"><span class="pfx">€</span><input id="npb-l" type="text" value="20.000" oninput="fmtInput(this);NPB.calc()"></div>
+      </div>
+      <div class="field"><label>Doba odplačila</label>
+        <select id="npb-d" onchange="NPB.calc()">${[10,15,20,25,30].map(y=>`<option value="${y}"${y===25?' selected':''}>${y} let</option>`).join('')}</select>
+      </div>
+    </div>
+    <div class="result-panel"><div class="result-label">Mesečni obrok (NPB)</div><div class="result-amount" id="npb-res">—</div><div class="result-sub" id="npb-sub"></div></div>
+    <div class="breakdown" id="npb-bdown"></div>
+    <p class="disclaimer">NPB 2026: subvencionirana obrestna mera ~1,5 % (variabilna, veže se na Euribor). Preverite aktualne pogoje pri SID banki in Stanovanjskem skladu RS.</p>`;
+  },
+  init(){
+    window.NPB={
+      calc(){
+        const v=parseAmt(document.getElementById('npb-v').value);
+        const l=parseAmt(document.getElementById('npb-l').value);
+        const n=parseInt(document.getElementById('npb-d').value)*12;
+        const S=Math.max(0,v-l);
+        const rNpb=0.015/12, rTrzni=0.045/12;
+        const obrokNpb=S*rNpb*Math.pow(1+rNpb,n)/(Math.pow(1+rNpb,n)-1);
+        const obrokTrz=S*rTrzni*Math.pow(1+rTrzni,n)/(Math.pow(1+rTrzni,n)-1);
+        const prihr=(obrokTrz-obrokNpb)*n;
+        document.getElementById('npb-res').textContent=fp(obrokNpb);
+        document.getElementById('npb-sub').innerHTML=`Tržni kredit: <strong>${fp(obrokTrz)}</strong> · prihranek v celotni dobi: <strong>${f(prihr)}</strong>`;
+        document.getElementById('npb-bdown').innerHTML=`
+          <div class="brow"><div class="bl">Znesek posojila</div><div class="br">${f(S)}</div></div>
+          <div class="brow"><div class="bl">NPB (~1,5 %) — mesečni obrok</div><div class="br acc">${fp(obrokNpb)}</div></div>
+          <div class="brow"><div class="bl">Tržni kredit (~4,5 %) — mesečni obrok</div><div class="br muted">${fp(obrokTrz)}</div></div>
+          <div class="brow total"><div class="bl" style="font-weight:600">Prihranek NPB vs. tržni</div><div class="br acc">${f(prihr)}</div></div>`;
+      }
+    };
+    NPB.calc();
+  }
+};
+
+// ── 23. MESEČNI PRORAČUN ─────────────────────────────────────────
+CALCS['proracun'] = {
+  law:'Orientacijski kalkulator',
+  render(){
+    return `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+      <div class="panel"><div class="panel-label">Prihodki (mesečno)</div>
+        <div class="field"><label>Neto plača</label><div class="inp-wrap has-pfx"><span class="pfx">€</span><input id="pr-p1" type="text" value="1.500" oninput="fmtInput(this);PR.calc()"></div></div>
+        <div class="field"><label>Plača partnerja</label><div class="inp-wrap has-pfx"><span class="pfx">€</span><input id="pr-p2" type="text" value="0" oninput="fmtInput(this);PR.calc()"></div></div>
+        <div class="field"><label>Drugi prihodki</label><div class="inp-wrap has-pfx"><span class="pfx">€</span><input id="pr-p3" type="text" value="0" oninput="fmtInput(this);PR.calc()"></div></div>
+      </div>
+      <div class="panel"><div class="panel-label">Odhodki (mesečno)</div>
+        <div class="field"><label>Stanovanje (najemnina/kredit)</label><div class="inp-wrap has-pfx"><span class="pfx">€</span><input id="pr-o1" type="text" value="500" oninput="fmtInput(this);PR.calc()"></div></div>
+        <div class="field"><label>Hrana in gospodinjstvo</label><div class="inp-wrap has-pfx"><span class="pfx">€</span><input id="pr-o2" type="text" value="400" oninput="fmtInput(this);PR.calc()"></div></div>
+        <div class="field"><label>Prevoz</label><div class="inp-wrap has-pfx"><span class="pfx">€</span><input id="pr-o3" type="text" value="150" oninput="fmtInput(this);PR.calc()"></div></div>
+        <div class="field"><label>Zavarovanja</label><div class="inp-wrap has-pfx"><span class="pfx">€</span><input id="pr-o4" type="text" value="80" oninput="fmtInput(this);PR.calc()"></div></div>
+        <div class="field"><label>Prosti čas in ostalo</label><div class="inp-wrap has-pfx"><span class="pfx">€</span><input id="pr-o5" type="text" value="200" oninput="fmtInput(this);PR.calc()"></div></div>
+      </div>
+    </div>
+    <div class="result-panel"><div class="result-label">Mesečni presežek / primanjkljaj</div><div class="result-amount" id="pr-res">—</div><div class="result-sub" id="pr-sub"></div></div>
+    <div class="breakdown" id="pr-bdown"></div>`;
+  },
+  init(){
+    window.PR={
+      calc(){
+        const p=(['p1','p2','p3']).reduce((s,k)=>s+parseAmt(document.getElementById('pr-'+k).value),0);
+        const o=(['o1','o2','o3','o4','o5']).reduce((s,k)=>s+parseAmt(document.getElementById('pr-'+k).value),0);
+        const pres=p-o;
+        document.getElementById('pr-res').textContent=(pres>=0?'+ ':'')+f(pres);
+        document.getElementById('pr-res').style.color=pres>=0?'#7EE787':'#FF8080';
+        document.getElementById('pr-sub').innerHTML=`Stopnja varčevanja: <strong>${p>0?pct(Math.max(0,pres)/p):'—'}</strong>`;
+        document.getElementById('pr-bdown').innerHTML=`
+          <div class="brow"><div class="bl">Skupni prihodki</div><div class="br">${f(p)}</div></div>
+          <div class="brow"><div class="bl">Skupni odhodki</div><div class="br muted">− ${f(o)}</div></div>
+          <div class="brow total"><div class="bl" style="font-weight:600">${pres>=0?'Presežek':'Primanjkljaj'}</div><div class="br acc">${f(Math.abs(pres))}</div></div>
+          <div class="brow"><div class="bl">Letni presežek</div><div class="br">${f(pres*12)}</div></div>`;
+      }
+    };
+    PR.calc();
+  }
+};
+
+// ── 24. INVESTICIJE ──────────────────────────────────────────────
+CALCS['investicije'] = {
+  law:'Matematični izračun',
+  render(){
+    return `
+    <div class="panel">
+      <div class="panel-label">Parametri naložbe</div>
+      <div class="field"><label>Začetni vložek</label>
+        <div class="inp-wrap has-pfx"><span class="pfx">€</span><input id="inv-z" type="text" value="5.000" oninput="fmtInput(this);INV.calc()"></div>
+      </div>
+      <div class="field"><label>Mesečni prispevek</label>
+        <div class="inp-wrap has-pfx"><span class="pfx">€</span><input id="inv-m" type="text" value="200" oninput="fmtInput(this);INV.calc()"></div>
+      </div>
+      <div class="field"><label>Pričakovani letni donos</label>
+        <div class="inp-wrap has-sfx"><input id="inv-r" type="text" value="7" oninput="INV.calc()"><span class="sfx">%</span></div>
+      </div>
+      <div class="field"><label>Obdobje varčevanja</label>
+        <select id="inv-n" onchange="INV.calc()">${[5,10,15,20,25,30].map(y=>`<option value="${y}"${y===20?' selected':''}>${y} let</option>`).join('')}</select>
+      </div>
+    </div>
+    <div class="result-panel"><div class="result-label">Vrednost ob koncu obdobja</div><div class="result-amount" id="inv-res">—</div><div class="result-sub" id="inv-sub"></div></div>
+    <div class="breakdown" id="inv-bdown"></div>`;
+  },
+  init(){
+    window.INV={
+      calc(){
+        const z=parseAmt(document.getElementById('inv-z').value);
+        const m=parseAmt(document.getElementById('inv-m').value);
+        const r=parseFloat((document.getElementById('inv-r').value||'').replace(',','.'))/100/12||0;
+        const n=parseInt(document.getElementById('inv-n').value)*12;
+        const fvZ=z*Math.pow(1+r,n);
+        const fvM=m*(Math.pow(1+r,n)-1)/r;
+        const skupaj=fvZ+fvM;
+        const vlozen=z+m*n;
+        const dobic=skupaj-vlozen;
+        document.getElementById('inv-res').textContent=f(skupaj);
+        document.getElementById('inv-sub').innerHTML=`Vloženo: <strong>${f(vlozen)}</strong> · obresti: <strong>${f(dobic)}</strong>`;
+        document.getElementById('inv-bdown').innerHTML=`
+          <div class="brow"><div class="bl">Skupaj vloženo</div><div class="br">${f(vlozen)}</div></div>
+          <div class="brow"><div class="bl">Donos (obresti)</div><div class="br acc">${f(dobic)}</div></div>
+          <div class="brow total"><div class="bl" style="font-weight:600">Vrednost ob koncu</div><div class="br acc">${f(skupaj)}</div></div>
+          <div class="brow"><div class="bl">Multiplikator</div><div class="br">${(skupaj/Math.max(1,vlozen)).toFixed(2).replace('.',',')}×</div></div>`;
+      }
+    };
+    INV.calc();
+  }
+};
+
+// ── 25. INFLACIJA ────────────────────────────────────────────────
+CALCS['inflacija'] = {
+  law:'Matematični izračun',
+  render(){
+    return `
+    <div class="panel">
+      <div class="panel-label">Parametri</div>
+      <div class="field"><label>Znesek danes</label>
+        <div class="inp-wrap has-pfx"><span class="pfx">€</span><input id="if-z" type="text" value="10.000" oninput="fmtInput(this);IF.calc()"></div>
+      </div>
+      <div class="field"><label>Letna stopnja inflacije</label>
+        <div class="inp-wrap has-sfx"><input id="if-r" type="text" value="3" oninput="IF.calc()"><span class="sfx">%</span></div>
+      </div>
+      <div class="field"><label>Obdobje</label>
+        <select id="if-n" onchange="IF.calc()">${[1,2,3,5,10,15,20].map(y=>`<option value="${y}"${y===10?' selected':''}>${y} let</option>`).join('')}</select>
+      </div>
+    </div>
+    <div class="result-panel"><div class="result-label">Realna vrednost čez leta</div><div class="result-amount" id="if-res">—</div><div class="result-sub" id="if-sub"></div></div>
+    <div class="breakdown" id="if-bdown"></div>`;
+  },
+  init(){
+    window.IF={
+      calc(){
+        const z=parseAmt(document.getElementById('if-z').value);
+        const r=parseFloat((document.getElementById('if-r').value||'').replace(',','.'))/100||0;
+        const n=parseInt(document.getElementById('if-n').value);
+        const real=z/Math.pow(1+r,n);
+        const izguba=z-real;
+        document.getElementById('if-res').textContent=f(real);
+        document.getElementById('if-sub').innerHTML=`Kupna moč se zmanjša za <strong>${f(izguba)}</strong> v ${n} letih`;
+        document.getElementById('if-bdown').innerHTML=`
+          <div class="brow"><div class="bl">Nominalna vrednost danes</div><div class="br">${f(z)}</div></div>
+          <div class="brow"><div class="bl">Letna inflacija</div><div class="br">${(r*100).toFixed(1).replace('.',',')} %</div></div>
+          <div class="brow"><div class="bl">Skupna inflacija v ${n} letih</div><div class="br muted">${((Math.pow(1+r,n)-1)*100).toFixed(1).replace('.',',')} %</div></div>
+          <div class="brow total"><div class="bl" style="font-weight:600">Realna vrednost</div><div class="br acc">${f(real)}</div></div>`;
+      }
+    };
+    IF.calc();
+  }
+};
+
+// ── 26. POKOJNINA ────────────────────────────────────────────────
+CALCS['pokojnina'] = {
+  law:'ZPIZ-2, 35. člen — starostna pokojnina',
+  render(){
+    return `
+    <div class="panel">
+      <div class="panel-label">Podatki</div>
+      <div class="field"><label>Leto rojstva</label>
+        <div class="inp-wrap"><input id="pok-rod" type="text" value="1980" oninput="POK.calc()"></div>
+      </div>
+      <div class="field"><label>Povprečna letna bruto plača</label>
+        <div class="inp-wrap has-pfx"><span class="pfx">€</span><input id="pok-placa" type="text" value="24.000" oninput="fmtInput(this);POK.calc()"></div>
+        <div class="hint">Dejanska letna bruto plača (ne mesečna)</div>
+      </div>
+      <div class="field"><label>Leta delovne dobe do zdaj</label>
+        <div class="inp-wrap has-sfx"><input id="pok-doba" type="text" value="20" oninput="POK.calc()"><span class="sfx">let</span></div>
+      </div>
+    </div>
+    <div class="result-panel"><div class="result-label">Orientacijska mesečna pokojnina</div><div class="result-amount" id="pok-res">—</div><div class="result-sub" id="pok-sub"></div></div>
+    <div class="breakdown" id="pok-bdown"></div>
+    <p class="disclaimer">ZPIZ-2: pokojnina = pokojninska osnova × pokojninski odstotek. Prikazano je orientacijsko — dejanska pokojnina se izračuna iz celotne zavarovalne dobe in letnih osnov.</p>`;
+  },
+  init(){
+    window.POK={
+      calc(){
+        const rod=parseInt(document.getElementById('pok-rod').value)||1980;
+        const placaL=parseAmt(document.getElementById('pok-placa').value);
+        const dobaDanes=parseFloat(document.getElementById('pok-doba').value)||0;
+        const letStarost=new Date().getFullYear()-rod;
+        // Starostna meja za polno pokojnino: 65 let (2025+)
+        const letDoPok=Math.max(0,65-letStarost);
+        const dobaObPok=dobaDanes+letDoPok;
+        // Pokojninska osnova (80 % povprečja najboljših 24 let)
+        const osnova=placaL*0.80/12;
+        // Pokojninski odstotek: 29 % za 15 let + 1,5 % za vsako nadaljnje leto
+        const pokOdst=Math.min(85, 29+Math.max(0,dobaObPok-15)*1.5)/100;
+        const pokojnina=osnova*pokOdst;
+        document.getElementById('pok-res').textContent=f(pokojnina);
+        document.getElementById('pok-sub').innerHTML=`Pričakovana upokojitev: ~${new Date().getFullYear()+letDoPok} · ${(pokOdst*100).toFixed(0)} % od osnove`;
+        document.getElementById('pok-bdown').innerHTML=`
+          <div class="brow"><div class="bl">Starost danes</div><div class="br">${letStarost} let</div></div>
+          <div class="brow"><div class="bl">Let do upokojitve (65 let)</div><div class="br">${letDoPok} let</div></div>
+          <div class="brow"><div class="bl">Predvidena delovna doba</div><div class="br">${dobaObPok.toFixed(0)} let</div></div>
+          <div class="brow"><div class="bl">Pokojninska osnova (80 % plače)</div><div class="br">${f(osnova)}/mes</div></div>
+          <div class="brow"><div class="bl">Pokojninski odstotek</div><div class="br">${(pokOdst*100).toFixed(0)} %</div></div>
+          <div class="brow total"><div class="bl" style="font-weight:600">Orientacijska pokojnina</div><div class="br acc">${f(pokojnina)}/mes</div></div>`;
+      }
+    };
+    POK.calc();
+  }
+};
+
+// ── 27. FIRE ─────────────────────────────────────────────────────
+CALCS['fire'] = {
+  law:'Pravilo 4 % (Trinity Study)',
+  render(){
+    return `
+    <div class="panel">
+      <div class="panel-label">Tvoja situacija</div>
+      <div class="field"><label>Mesečni odhodki (želeni)</label>
+        <div class="inp-wrap has-pfx"><span class="pfx">€</span><input id="fi-o" type="text" value="1.500" oninput="fmtInput(this);FI.calc()"></div>
+      </div>
+      <div class="field"><label>Trenutni prihranki / naložbe</label>
+        <div class="inp-wrap has-pfx"><span class="pfx">€</span><input id="fi-p" type="text" value="20.000" oninput="fmtInput(this);FI.calc()"></div>
+      </div>
+      <div class="field"><label>Mesečni prispevek k varčevanju</label>
+        <div class="inp-wrap has-pfx"><span class="pfx">€</span><input id="fi-m" type="text" value="500" oninput="fmtInput(this);FI.calc()"></div>
+      </div>
+      <div class="field"><label>Pričakovani letni donos naložb</label>
+        <div class="inp-wrap has-sfx"><input id="fi-r" type="text" value="7" oninput="FI.calc()"><span class="sfx">%</span></div>
+      </div>
+    </div>
+    <div class="result-panel"><div class="result-label">FIRE cilj in čas do neodvisnosti</div><div class="result-amount" id="fi-res">—</div><div class="result-sub" id="fi-sub"></div></div>
+    <div class="breakdown" id="fi-bdown"></div>
+    <p class="disclaimer">Pravilo 4 %: potrebuješ 25 × letne odhodke. Donosi so hipotetični in ne zajemajo davkov na kapitalske dobičke.</p>`;
+  },
+  init(){
+    window.FI={
+      calc(){
+        const o=parseAmt(document.getElementById('fi-o').value);
+        const p=parseAmt(document.getElementById('fi-p').value);
+        const m=parseAmt(document.getElementById('fi-m').value);
+        const r=parseFloat((document.getElementById('fi-r').value||'').replace(',','.'))/100/12||0;
+        const cilj=o*12*25;
+        if(!o||!r){ document.getElementById('fi-res').textContent='—'; return; }
+        // Iterativno poišči mesece
+        let s=p, mes=0;
+        while(s<cilj && mes<600){ s=s*(1+r)+m; mes++; }
+        const leta=(mes/12).toFixed(1).replace('.',',');
+        const stopnjaVarc=m/(m+o)*100;
+        document.getElementById('fi-res').textContent=mes<600?leta+' let':'60+ let';
+        document.getElementById('fi-sub').innerHTML=`FIRE cilj: <strong>${f(cilj)}</strong> · stopnja varčevanja: <strong>${stopnjaVarc.toFixed(0)} %</strong>`;
+        document.getElementById('fi-bdown').innerHTML=`
+          <div class="brow"><div class="bl">Letni odhodki</div><div class="br">${f(o*12)}</div></div>
+          <div class="brow"><div class="bl">FIRE cilj (25 × letni odhodki)</div><div class="br acc">${f(cilj)}</div></div>
+          <div class="brow"><div class="bl">Trenutni prihranki</div><div class="br">${f(p)}</div></div>
+          <div class="brow"><div class="bl">Mesečni prispevek</div><div class="br">${f(m)}</div></div>
+          <div class="brow total"><div class="bl" style="font-weight:600">Do finančne neodvisnosti</div><div class="br acc">${mes<600?leta+' let':'Povečaj varčevanje'}</div></div>`;
+      }
+    };
+    FI.calc();
+  }
+};
+
+// ── 28. S.P. DAVKI ───────────────────────────────────────────────
+CALCS['sp-davcni'] = {
+  law:'ZPIZ-2, ZZVZZ, ZDoh-2 — S.P. 2026',
+  render(){
+    return `
+    <div class="panel">
+      <div class="panel-label">Podatki</div>
+      <div class="field"><label>Letni prihodki</label>
+        <div class="inp-wrap has-pfx"><span class="pfx">€</span><input id="sp-p" type="text" value="40.000" oninput="fmtInput(this);SP.calc()"></div>
+      </div>
+      <div class="field"><label>Dejanski letni stroški poslovanja</label>
+        <div class="inp-wrap has-pfx"><span class="pfx">€</span><input id="sp-s" type="text" value="8.000" oninput="fmtInput(this);SP.calc()"></div>
+        <div class="hint">Računovodstvo, najemi, material, prevoz…</div>
+      </div>
+    </div>
+    <div class="result-panel"><div class="result-label">Letni neto dohodek</div><div class="result-amount" id="sp-res">—</div><div class="result-sub" id="sp-sub"></div></div>
+    <div class="breakdown" id="sp-bdown"></div>
+    <p class="disclaimer">Poenostavljen izračun. Prispevki s.p. temeljijo na minimalni osnovi. Davčno svetovanje priporočeno.</p>`;
+  },
+  init(){
+    window.SP={
+      calc(){
+        const p=parseAmt(document.getElementById('sp-p').value);
+        const s=parseAmt(document.getElementById('sp-s').value);
+        // Normiranec
+        const normStros=p*CFG.spPriznanStroški;
+        const normOsnova=p-normStros;
+        // Prispevki na minimalni osnovi (~1 × minimalna plača × stopnje)
+        const przMes=CFG.minPlaca*(CFG.przDelavec.piz+CFG.przDelavec.zz+0.0053+CFG.przDelavec.oskrbo+CFG.przDelod.oskrbo);
+        const przLetni=przMes*12;
+        const normDavek=calcDohodnina(Math.max(0,normOsnova-przLetni),CFG.splosnaOlajsava);
+        const normNeto=p-przLetni-normDavek;
+        // Dejanski
+        const dejOsnova=p-s;
+        const dejDavek=calcDohodnina(Math.max(0,dejOsnova-przLetni),CFG.splosnaOlajsava);
+        const dejNeto=p-s-przLetni-dejDavek;
+        document.getElementById('sp-res').textContent=f(Math.max(normNeto,dejNeto));
+        document.getElementById('sp-sub').innerHTML=`Normiranec: <strong>${f(normNeto)}</strong> · Dejanski: <strong>${f(dejNeto)}</strong>`;
+        document.getElementById('sp-bdown').innerHTML=`
+          <div class="brow"><div class="bl">Letni prihodki</div><div class="br">${f(p)}</div></div>
+          <div class="brow"><div class="bl">Prispevki (letno)</div><div class="br muted">− ${f(przLetni)}</div></div>
+          <div class="brow"><div class="bl">NORMIRANEC — davčna osnova (20 %)</div><div class="br">${f(normOsnova)}</div></div>
+          <div class="brow"><div class="bl">Normiranec — dohodnina</div><div class="br muted">− ${f(normDavek)}</div></div>
+          <div class="brow"><div class="bl" style="color:var(--c-varcevanje);font-weight:600">Normiranec — neto</div><div class="br acc" style="color:var(--c-varcevanje)">${f(normNeto)}</div></div>
+          <div class="brow"><div class="bl">DEJANSKI — stroški</div><div class="br muted">− ${f(s)}</div></div>
+          <div class="brow"><div class="bl">Dejanski — dohodnina</div><div class="br muted">− ${f(dejDavek)}</div></div>
+          <div class="brow total"><div class="bl" style="color:var(--c-placa);font-weight:600">Dejanski — neto</div><div class="br acc" style="color:var(--c-placa)">${f(dejNeto)}</div></div>`;
+      }
+    };
+    SP.calc();
+  }
+};
+
+// ── 29. NORMIRANEC ───────────────────────────────────────────────
+CALCS['normiranec'] = {
+  law:'ZDoh-2, 59. člen',
+  render(){
+    return `
+    <div class="panel">
+      <div class="panel-label">Parametri</div>
+      <div class="field"><label>Letni prihodki</label>
+        <div class="inp-wrap has-pfx"><span class="pfx">€</span><input id="no-p" type="text" value="35.000" oninput="fmtInput(this);NO.calc()"></div>
+      </div>
+      <div class="field"><label>Dejanski letni stroški</label>
+        <div class="inp-wrap has-pfx"><span class="pfx">€</span><input id="no-s" type="text" value="10.000" oninput="fmtInput(this);NO.calc()"></div>
+        <div class="hint">Povleci drsnik — kalkulator pokaže, kdaj se normiranec ne splača več</div>
+      </div>
+    </div>
+    <div class="result-panel"><div class="result-label">Priporočena oblika</div><div class="result-amount" id="no-res">—</div><div class="result-sub" id="no-sub"></div></div>
+    <div class="breakdown" id="no-bdown"></div>
+    <p class="disclaimer">Normiranec je ugodnejši, kadar dejanski stroški znašajo manj kot 80 % prihodkov. Meja prihodkov za normiranec 2026: ${f(CFG.spPrizvanihMax)}.</p>`;
+  },
+  init(){
+    window.NO={
+      calc(){
+        const p=parseAmt(document.getElementById('no-p').value);
+        const s=parseAmt(document.getElementById('no-s').value);
+        const przLetni=CFG.minPlaca*(CFG.przDelavec.piz+CFG.przDelavec.zz+0.0053+CFG.przDelavec.oskrbo+CFG.przDelod.oskrbo)*12;
+        const normOsnova=p*0.20;
+        const normDavek=calcDohodnina(Math.max(0,normOsnova-przLetni),CFG.splosnaOlajsava);
+        const normNeto=p-przLetni-normDavek;
+        const dejOsnova=p-s;
+        const dejDavek=calcDohodnina(Math.max(0,dejOsnova-przLetni),CFG.splosnaOlajsava);
+        const dejNeto=p-s-przLetni-dejDavek;
+        const ugodnejsi=normNeto>=dejNeto?'Normiranec':'Dejanski stroški';
+        const razlika=Math.abs(normNeto-dejNeto);
+        document.getElementById('no-res').textContent=ugodnejsi;
+        document.getElementById('no-sub').innerHTML=`Razlika: <strong>${f(razlika)}/leto</strong>`;
+        document.getElementById('no-bdown').innerHTML=`
+          <div class="brow"><div class="bl">Normiranec — neto letni dohodek</div><div class="br ${normNeto>=dejNeto?'acc':'muted'}">${f(normNeto)}</div></div>
+          <div class="brow"><div class="bl">Dejanski stroški — neto letni dohodek</div><div class="br ${dejNeto>normNeto?'acc':'muted'}">${f(dejNeto)}</div></div>
+          <div class="brow total"><div class="bl" style="font-weight:600">Ugodnejša oblika</div><div class="br acc">${ugodnejsi}</div></div>
+          <div class="brow"><div class="bl">Letni prihranek</div><div class="br">${f(razlika)}</div></div>`;
+      }
+    };
+    NO.calc();
+  }
+};
+
+// ── 30. DIVIDENDE ────────────────────────────────────────────────
+CALCS['dividende'] = {
+  law:'ZDoh-2, 90. člen — Dividende',
+  render(){
+    return `
+    <div class="panel">
+      <div class="panel-label">Izplačilo dividend</div>
+      <div class="field"><label>Znesek dividend (bruto)</label>
+        <div class="inp-wrap has-pfx"><span class="pfx">€</span><input id="div-z" type="text" value="10.000" oninput="fmtInput(this);DIV.calc()"></div>
+      </div>
+      <div class="field"><label>Ali ste edini lastnik in poslovodja?</label>
+        <div class="tgl" id="div-pm">
+          <button class="tgl-btn on" onclick="DIV.setPM(true,this)">Da</button>
+          <button class="tgl-btn" onclick="DIV.setPM(false,this)">Ne</button>
+        </div>
+        <div class="hint">Poslovodeči edini lastnik plača zdravstveni prispevek od dividend</div>
+      </div>
+    </div>
+    <div class="result-panel"><div class="result-label">Neto dividende</div><div class="result-amount" id="div-res">—</div><div class="result-sub" id="div-sub"></div></div>
+    <div class="breakdown" id="div-bdown"></div>
+    <p class="disclaimer">ZDoh-2, 90. člen: dividende so obdavčene s 25 %. Poslovodeči edini lastnik plača tudi zdravstveni prispevek 6,36 %.</p>`;
+  },
+  init(){
+    window.DIV={
+      pm:true,
+      setPM(v,btn){ this.pm=v; document.querySelectorAll('#div-pm .tgl-btn').forEach(b=>b.classList.remove('on')); btn.classList.add('on'); this.calc(); },
+      calc(){
+        const z=parseAmt(document.getElementById('div-z').value);
+        const doh=z*0.25;
+        const zz=this.pm?z*CFG.przDelavec.zz:0;
+        const neto=z-doh-zz;
+        document.getElementById('div-res').textContent=f(neto);
+        document.getElementById('div-sub').innerHTML=`Efektivna obremenitev: <strong>${pct((z-neto)/z)}</strong>`;
+        document.getElementById('div-bdown').innerHTML=`
+          <div class="brow"><div class="bl">Dividende (bruto)</div><div class="br">${f(z)}</div></div>
+          <div class="brow"><div class="bl">Dohodnina (25 %)</div><div class="br muted">− ${f(doh)}</div></div>
+          ${this.pm?`<div class="brow"><div class="bl">Zdravstveni prispevek (6,36 %)</div><div class="br muted">− ${f(zz)}</div></div>`:''}
+          <div class="brow total"><div class="bl" style="font-weight:600">Neto dividende</div><div class="br acc">${f(neto)}</div></div>`;
+      }
+    };
+    DIV.calc();
+  }
+};
+
+// ── 31. SP ODPRAVNINA (alias) ────────────────────────────────────
+CALCS['sp-odpravnina'] = CALCS['odpravnina'];
+
+// ══════════════════════════════════════════════════════════════════
+// NAVIGATION
+// ══════════════════════════════════════════════════════════════════
+function show(pgId){ ['pg-home','pg-cat','pg-calc'].forEach(id=>{ const el=document.getElementById(id); el.classList.toggle('on',id===pgId); }); window.scrollTo({top:0,behavior:'smooth'}); }
+function setBc(items){ document.getElementById('bc').innerHTML=['<span class="crumb" onclick="goHome()">Domov</span>',...items.map((it,i)=>i<items.length-1?`<span class="sep">/</span><span class="crumb" onclick="${it.fn}">${it.label}</span>`:`<span class="sep">/</span><span class="crumb cur">${it.label}</span>`)].join(''); }
+
+function goHome(){ show('pg-home'); setBc([]); }
+
+function openCat(catId){
+  const cat=CATS.find(c=>c.id===catId);
+  const BLBG={'law':'badge b-law','new':'badge b-new','pop':'badge b-pop'};
+  const BL={'law':'zakon','new':'novo','pop':'priljubljen'};
+  document.getElementById('pg-cat').innerHTML=`
+    <div class="wrap">
+      <div class="cat-header">
+        <div>
+          <div class="cat-bar" style="background:${cat.color}"></div>
+          <div class="cat-eyebrow">${cat.num} — ${cat.id.toUpperCase()}</div>
+          <div class="cat-title">${cat.title}</div>
+          <div class="cat-desc">${cat.desc}</div>
+        </div>
+        <div class="back-btn" onclick="goHome()">← Vsa področja</div>
+      </div>
+      <div class="calc-list">${cat.calcs.map(c=>`
+        <div class="citem" onclick="openCalc('${catId}','${c.id}')" style="--acc:${cat.color}">
+          <div class="ci-top">
+            <div class="ci-name">${c.name}</div>
+            <div class="badges">${c.badges.map(b=>`<span class="${BLBG[b]}">${BL[b]}</span>`).join('')}</div>
+          </div>
+          <div class="ci-desc">${c.desc}</div>
+          <div class="ci-link" style="color:${cat.color}">Odpri kalkulator →</div>
+        </div>`).join('')}
+      </div>
+    </div>`;
+  show('pg-cat');
+  setBc([{label:cat.title,fn:`openCat('${catId}')`}]);
+}
+
+function openCalc(catId,calcId){
+  const cat=CATS.find(c=>c.id===catId);
+  const cdef=cat.calcs.find(c=>c.id===calcId);
+  const calc=CALCS[calcId];
+  if(!calc){ alert('Kalkulator se gradi…'); return; }
+  document.getElementById('pg-calc').innerHTML=`
+    <div class="calc-page">
+      <div class="calc-header">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:.5rem">
+          <div style="width:4px;height:28px;border-radius:2px;background:${cat.color}"></div>
+          <div class="cat-eyebrow" style="margin:0">${cat.title}</div>
+        </div>
+        <div class="calc-title">${cdef.name}</div>
+        <div class="law-ref">⚖ ${calc.law}</div>
+      </div>
+      ${calc.render()}
+    </div>`;
+  show('pg-calc');
+  setBc([{label:cat.title,fn:`openCat('${catId}')`},{label:cdef.name}]);
+  setTimeout(()=>calc.init(),50);
+}
+
+// ══════════════════════════════════════════════════════════════════
+// BUILD HOME
+// ══════════════════════════════════════════════════════════════════
+const mainCats = CATS.filter(c => c.id !== 'sp');
+const spCat    = CATS.find(c => c.id === 'sp');
+
+function buildCard(cat){ return `
+  <div class="dcard" data-c="${cat.id}" onclick="openCat('${cat.id}')">
+    <div style="flex:1;min-width:0">
+      <div class="dcard-num">${cat.num}</div>
+      <div class="dcard-title">${cat.title}</div>
+      <div class="dcard-desc">${cat.desc}</div>
+    </div>
+    <div class="dcard-count">${cat.calcs.length} kalkulatorjev</div>
+    <div class="dcard-arrow">↗</div>
+  </div>`; }
+
+document.getElementById('domain-grid').innerHTML = mainCats.map(buildCard).join('');
+document.getElementById('sp-grid').innerHTML = buildCard(spCat);
+
+setBc([]);
+</script>
+</body>
+</html>

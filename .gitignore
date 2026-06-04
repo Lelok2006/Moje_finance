@@ -1,0 +1,38 @@
+# dependencies
+node_modules/
+/.pnp
+.pnp.js
+
+# Next.js
+/.next/
+/out/
+
+# production
+/build
+
+# env — NIKOLI ne commitaj pravih ključev
+.env
+.env.local
+.env.*.local
+
+# Supabase CLI
+/supabase/.branches
+/supabase/.temp
+/supabase/config.toml
+
+# misc
+.DS_Store
+*.pem
+Thumbs.db
+
+# debug logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# Vercel
+.vercel
