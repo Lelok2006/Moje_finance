@@ -7,6 +7,7 @@ import Finance from "@/components/modules/Finance";
 import Documents from "@/components/modules/Documents";
 import Members from "@/components/modules/Members";
 import Calculators from "@/components/modules/Calculators";
+import Calendar from "@/components/modules/Calendar";
 import Settings from "@/components/modules/Settings";
 import type { ModuleId } from "@/types";
 
@@ -16,6 +17,7 @@ const MODULES: Record<ModuleId, React.ReactNode> = {
   documents:   <Documents />,
   members:     <Members />,
   calculators: <Calculators />,
+  calendar:    <Calendar />,
   settings:    <Settings />,
 };
 

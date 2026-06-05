@@ -43,7 +43,7 @@ export const CATEGORIES: Category[] = [
   { code: "3600", name: "Dom (popravila)",      type: "variable" },
   { code: "3700", name: "Otroci",               type: "variable", icon: "baby" },
   { code: "3800", name: "Hišni ljubljenčki",    type: "variable" },
-  { code: "3900", name: "Drugo",                type: "variable" },
+  { code: "3900", name: "Ostalo",               type: "variable" },
   // Prihranki
   { code: "4000", name: "Prihranki",            type: "savings" },
   { code: "4010", name: "Hranilna vloga",        type: "savings", parentCode: "4000" },
@@ -102,6 +102,7 @@ export const BUDGET: BudgetItem[] = [
   { categoryCode: "2100", monthlyLimit: 200,  currentSpend: 120 },
   { categoryCode: "3100", monthlyLimit: 150,  currentSpend: 45  },
   { categoryCode: "3400", monthlyLimit: 100,  currentSpend: 80  },
+  { categoryCode: "3900", monthlyLimit: 100,  currentSpend: 0   },
 ];
 
 // ── DOKUMENTI — demo podatki ──────────────────────────────────

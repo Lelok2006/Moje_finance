@@ -78,7 +78,7 @@ export default function Documents() {
                   </div>
                   <div className="flex gap-2 flex-shrink-0">
                     <button
-                      onClick={() => setConfirmed((s) => new Set([...s, doc.id]))}
+                      onClick={() => setConfirmed((s) => new Set(Array.from(s).concat(doc.id)))}
                       className="flex items-center gap-1 text-xs bg-income-500 text-white px-2.5 py-1.5 rounded-lg hover:bg-income-700 transition-colors"
                     >
                       <Check size={12} />Potrdi

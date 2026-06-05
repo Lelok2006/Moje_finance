@@ -79,4 +79,5 @@ export type ModuleId =
   | "documents"
   | "members"
   | "calculators"
+  | "calendar"
   | "settings";

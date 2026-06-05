@@ -60,6 +60,7 @@
   .pill-red    { @apply bg-expense-50 text-expense-700; }
   .pill-amber  { @apply bg-warn-50 text-warn-700; }
   .pill-purple { @apply bg-purple-50 text-purple-700; }
+  .pill-gray   { @apply bg-neutral-100 text-neutral-500; }
 
   /* ── Transakcijska vrstica ── */
   .tx-row {

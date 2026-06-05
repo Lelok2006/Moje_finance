@@ -3,7 +3,7 @@
 import { useState } from "react";
 import {
   LayoutDashboard, Euro, Files, Users,
-  Calculator, Settings, Home, Menu, X,
+  Calculator, Settings, Home, Menu, X, CalendarDays,
 } from "lucide-react";
 import type { ModuleId } from "@/types";
 import clsx from "clsx";
@@ -20,10 +20,11 @@ const NAV_ITEMS: {
   { id: "documents",   label: "Dokumenti",        icon: <Files size={16} />,           group: "Moduli", badge: 1 },
   { id: "members",     label: "Člani",            icon: <Users size={16} />,           group: "Moduli" },
   { id: "calculators", label: "Kalkulatorji",     icon: <Calculator size={16} />,      group: "Moduli" },
+  { id: "calendar",    label: "Koledar",          icon: <CalendarDays size={16} />,    group: "Moduli" },
   { id: "settings",    label: "Nastavitve",       icon: <Settings size={16} />,        group: "Sistem" },
 ];
 
-const GROUPS = [...new Set(NAV_ITEMS.map((i) => i.group))];
+const GROUPS = Array.from(new Set(NAV_ITEMS.map((i) => i.group)));
 
 interface SidebarProps {
   active: ModuleId;

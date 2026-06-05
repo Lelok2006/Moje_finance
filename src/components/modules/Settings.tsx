@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Edit3, Plus } from "lucide-react";
+import { Edit3, Plus, Check, X } from "lucide-react";
 import { CATEGORIES } from "@/lib/data";
 import clsx from "clsx";
 
@@ -16,11 +16,21 @@ const TYPE_LABEL: Record<string, string> = {
 };
 
 const NOTIFS = [
-  { id: "budget",    label: "Opozorilo pri proračunu", desc: "Ko porabiš 80 % kategorije", on: true },
-  { id: "birthday",  label: "Rojstni dnevi",           desc: "7 dni vnaprej",              on: true },
-  { id: "deadline",  label: "Roki dokumentov",         desc: "Zavarovanja, pogodbe",        on: true },
-  { id: "report",    label: "Mesečno poročilo",        desc: "1. v mesecu po e-pošti",      on: false },
+  { id: "budget",   label: "Opozorilo pri proračunu", desc: "Ko porabiš 80 % kategorije", on: true  },
+  { id: "birthday", label: "Rojstni dnevi",           desc: "7 dni vnaprej",              on: true  },
+  { id: "deadline", label: "Roki dokumentov",         desc: "Zavarovanja, pogodbe",        on: true  },
+  { id: "overdue",  label: "Zapadle položnice",        desc: "Ko račun preseže rok plačila", on: true  },
+  { id: "report",   label: "Mesečno poročilo",        desc: "1. v mesecu po e-pošti",      on: false },
 ];
+
+const HOUSEHOLD_FIELDS = [
+  { key: "name",     label: "Ime gospodinjstva", editable: true  },
+  { key: "currency", label: "Valuta",            editable: false },
+  { key: "country",  label: "Država",            editable: true  },
+  { key: "taxScale", label: "Davčna lestvica",   editable: false },
+] as const;
+
+type HouseholdKey = typeof HOUSEHOLD_FIELDS[number]["key"];
 
 const topLevelTypes = ["income", "fixed", "variable", "savings"] as const;
 
@@ -29,6 +39,19 @@ export default function Settings() {
     Object.fromEntries(NOTIFS.map((n) => [n.id, n.on]))
   );
   const [openType, setOpenType] = useState<string | null>("income");
+
+  const [household, setHousehold] = useState<Record<HouseholdKey, string>>({
+    name:     "Novak",
+    currency: "EUR €",
+    country:  "Slovenija",
+    taxScale: "SLO 2026",
+  });
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState<Record<HouseholdKey, string>>(household);
+
+  function startEdit() { setDraft(household); setEditing(true); }
+  function saveEdit()  { setHousehold(draft); setEditing(false); }
+  function cancelEdit(){ setEditing(false); }
 
   const toggle = (id: string) =>
     setToggles((prev) => ({ ...prev, [id]: !prev[id] }));
@@ -70,12 +93,9 @@ export default function Settings() {
                 {isOpen && (
                   <div className="ml-3 border-l border-neutral-100 pl-3 mb-2">
                     {parents.map((parent) => {
-                      const children = CATEGORIES.filter(
-                        (c) => c.parentCode === parent.code
-                      );
+                      const children = CATEGORIES.filter((c) => c.parentCode === parent.code);
                       return (
                         <div key={parent.code}>
-                          {/* Starš */}
                           <div className="flex items-center gap-2 py-1.5">
                             <span className="sif-code">{parent.code}</span>
                             <span className="text-xs font-medium text-neutral-700 flex-1">{parent.name}</span>
@@ -83,7 +103,6 @@ export default function Settings() {
                               <Edit3 size={11} />
                             </button>
                           </div>
-                          {/* Otroci */}
                           {children.map((child) => (
                             <div key={child.code} className="flex items-center gap-2 py-1 pl-4">
                               <span className="sif-code">{child.code}</span>
@@ -109,16 +128,40 @@ export default function Settings() {
 
           {/* Gospodinjstvo */}
           <div className="card">
-            <div className="card-title">Gospodinjstvo</div>
-            {[
-              { label: "Ime gospodinjstva", value: "Novak" },
-              { label: "Valuta",            value: "EUR €" },
-              { label: "Država",            value: "Slovenija" },
-              { label: "Davčna lestvica",   value: "SLO 2026" },
-            ].map((row) => (
-              <div key={row.label} className="flex items-center justify-between py-2 border-b border-neutral-50 last:border-0">
-                <span className="text-xs text-neutral-600">{row.label}</span>
-                <span className="text-xs text-neutral-500 font-medium">{row.value}</span>
+            <div className="card-title">
+              Gospodinjstvo
+              {!editing ? (
+                <button onClick={startEdit} className="btn-secondary text-xs">
+                  <Edit3 size={12} />Uredi
+                </button>
+              ) : (
+                <div className="flex gap-1.5">
+                  <button onClick={saveEdit} className="btn-primary text-xs py-1">
+                    <Check size={12} />Shrani
+                  </button>
+                  <button onClick={cancelEdit} className="btn-secondary text-xs py-1">
+                    <X size={12} />Prekliči
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {HOUSEHOLD_FIELDS.map((field) => (
+              <div
+                key={field.key}
+                className="flex items-center justify-between py-2 border-b border-neutral-50 last:border-0 gap-4"
+              >
+                <span className="text-xs text-neutral-600 flex-shrink-0">{field.label}</span>
+                {editing && field.editable ? (
+                  <input
+                    type="text"
+                    value={draft[field.key]}
+                    onChange={(e) => setDraft((d) => ({ ...d, [field.key]: e.target.value }))}
+                    className="text-xs text-neutral-800 font-medium text-right bg-neutral-50 border border-neutral-200 rounded-md px-2 py-1 focus:outline-none focus:ring-1 focus:ring-brand-400 w-36"
+                  />
+                ) : (
+                  <span className="text-xs text-neutral-500 font-medium">{household[field.key]}</span>
+                )}
               </div>
             ))}
           </div>
