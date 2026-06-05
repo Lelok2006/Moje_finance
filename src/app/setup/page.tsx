@@ -56,7 +56,9 @@ export default function SetupPage() {
       router.push("/");
       router.refresh();
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Napaka pri ustvarjanju gospodinjstva.");
+      const msg = e instanceof Error ? e.message : JSON.stringify(e);
+      setError(msg);
+      console.error("Setup error:", e);
     }
     setLoading(false);
   }
