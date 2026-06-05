@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Home, Eye, EyeOff } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const supabase = createClient();
 
   const [mode, setMode] = useState<"login" | "register">("login");
@@ -15,31 +16,74 @@ export default function LoginPage() {
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [info, setInfo] = useState<string | null>(null);
+  const [sent, setSent] = useState(false); // po registraciji
+
+  // Pokaži napako iz URL parametra (npr. po neuspeli potrditvi)
+  useEffect(() => {
+    const err = searchParams.get("error");
+    if (err) setError(decodeURIComponent(err));
+  }, [searchParams]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    setInfo(null);
     setLoading(true);
 
-    if (mode === "login") {
+    if (mode === "register") {
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
+      if (error) setError(error.message);
+      else setSent(true);
+
+    } else {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) {
         setError("Napačen e-naslov ali geslo.");
       } else {
-        router.push("/");
+        // Preveri ali user že ima gospodinjstvo
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: profile } = await (supabase as any)
+          .from("user_profiles")
+          .select("household_id")
+          .maybeSingle();
+
+        router.push(profile ? "/" : "/setup");
         router.refresh();
-      }
-    } else {
-      const { error } = await supabase.auth.signUp({ email, password });
-      if (error) {
-        setError(error.message);
-      } else {
-        setInfo("Potrditveni e-mail je bil poslan. Po potrditvi se vpiši.");
       }
     }
     setLoading(false);
+  }
+
+  // Stanje po uspešni registraciji — čakamo na potrditev emaila
+  if (sent) {
+    return (
+      <div className="min-h-screen bg-neutral-50 flex items-center justify-center p-4">
+        <div className="w-full max-w-sm text-center">
+          <div className="w-14 h-14 bg-income-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <span className="text-2xl">📬</span>
+          </div>
+          <h2 className="text-base font-semibold text-neutral-900 mb-2">Preveri svojo pošto</h2>
+          <p className="text-sm text-neutral-500 mb-1">
+            Poslali smo potrditveni e-mail na
+          </p>
+          <p className="text-sm font-medium text-neutral-800 mb-4">{email}</p>
+          <p className="text-xs text-neutral-400">
+            Klikni na povezavo v emailu in dostop bo odprt. Email morda prispe z zamudo 1–2 min.
+          </p>
+          <button
+            onClick={() => { setSent(false); setMode("login"); }}
+            className="btn-ghost text-xs mt-6 mx-auto"
+          >
+            Nazaj na vpis
+          </button>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -57,7 +101,6 @@ export default function LoginPage() {
           </div>
         </div>
 
-        {/* Kartica */}
         <div className="bg-white border border-neutral-100 rounded-2xl shadow-sm p-6">
 
           {/* Tabs */}
@@ -65,7 +108,7 @@ export default function LoginPage() {
             {(["login", "register"] as const).map((m) => (
               <button
                 key={m}
-                onClick={() => { setMode(m); setError(null); setInfo(null); }}
+                onClick={() => { setMode(m); setError(null); }}
                 className={`flex-1 text-sm py-1.5 rounded-lg font-medium transition-all ${
                   mode === m
                     ? "bg-white text-neutral-800 shadow-sm"
@@ -119,16 +162,11 @@ export default function LoginPage() {
                 {error}
               </p>
             )}
-            {info && (
-              <p className="text-xs text-income-700 bg-income-50 border border-income-200 rounded-lg px-3 py-2">
-                {info}
-              </p>
-            )}
 
             <button
               type="submit"
               disabled={loading}
-              className="btn-primary w-full justify-center py-2.5 text-sm disabled:opacity-50"
+              className="btn-primary w-full justify-center py-2.5 disabled:opacity-50"
             >
               {loading ? "…" : mode === "login" ? "Vpiši se" : "Ustvari račun"}
             </button>

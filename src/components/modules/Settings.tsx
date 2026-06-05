@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Edit3, Plus, Check, X } from "lucide-react";
+import { Edit3, Plus, Check, X, Copy, Link } from "lucide-react";
 import { CATEGORIES } from "@/lib/data";
+import { createClient } from "@/lib/supabase/client";
 import clsx from "clsx";
 
 const TYPE_PILL: Record<string, string> = {
@@ -35,10 +36,41 @@ type HouseholdKey = typeof HOUSEHOLD_FIELDS[number]["key"];
 const topLevelTypes = ["income", "fixed", "variable", "savings"] as const;
 
 export default function Settings() {
+  const supabase = createClient();
+
   const [toggles, setToggles] = useState<Record<string, boolean>>(
     Object.fromEntries(NOTIFS.map((n) => [n.id, n.on]))
   );
   const [openType, setOpenType] = useState<string | null>("income");
+
+  // Povabilo
+  const [inviteLink, setInviteLink] = useState<string | null>(null);
+  const [inviteLoading, setInviteLoading] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  async function generateInvite() {
+    setInviteLoading(true);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const db = supabase as any;
+    const { data: profile } = await db.from("user_profiles").select("household_id").maybeSingle();
+    if (!profile) { setInviteLoading(false); return; }
+
+    const { data: invite } = await db
+      .from("household_invites")
+      .insert({ household_id: profile.household_id })
+      .select("token")
+      .single();
+
+    if (invite) setInviteLink(`${window.location.origin}/invite/${invite.token}`);
+    setInviteLoading(false);
+  }
+
+  function copyLink() {
+    if (!inviteLink) return;
+    navigator.clipboard.writeText(inviteLink);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
 
   const [household, setHousehold] = useState<Record<HouseholdKey, string>>({
     name:     "Novak",
@@ -194,9 +226,45 @@ export default function Settings() {
             ))}
           </div>
 
+          {/* Povabilo */}
+          <div className="card">
+            <div className="card-title">
+              Povabi člana
+            </div>
+            <p className="text-xs text-neutral-500 mb-3">
+              Ustvari enkratno povabilo in pošlji povezavo osebi, ki se želi pridružiti.
+            </p>
+            {!inviteLink ? (
+              <button
+                onClick={generateInvite}
+                disabled={inviteLoading}
+                className="btn-secondary w-full justify-center disabled:opacity-50"
+              >
+                <Link size={13} />
+                {inviteLoading ? "Ustvarjam…" : "Ustvari povabilo"}
+              </button>
+            ) : (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 bg-neutral-50 border border-neutral-200 rounded-lg px-3 py-2">
+                  <span className="text-[11px] text-neutral-500 flex-1 truncate">{inviteLink}</span>
+                  <button onClick={copyLink} className="flex-shrink-0 text-brand-600 hover:text-brand-700">
+                    {copied ? <Check size={14} /> : <Copy size={14} />}
+                  </button>
+                </div>
+                <p className="text-[10px] text-neutral-400">Veljavno 7 dni · Ena oseba</p>
+                <button
+                  onClick={() => { setInviteLink(null); setCopied(false); }}
+                  className="btn-ghost text-xs w-full justify-center"
+                >
+                  Novo povabilo
+                </button>
+              </div>
+            )}
+          </div>
+
           {/* Verzija */}
           <div className="text-center text-[10px] text-neutral-300 pt-2">
-            Moje finance v0.1.0 · Podatki shranjeni lokalno
+            Moje finance v0.1.0 · Podatki shranjeni varno v Supabase
           </div>
         </div>
       </div>
