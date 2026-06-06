@@ -1,13 +1,23 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
-  ChevronLeft, ChevronRight, Plus, Cake, Plane,
-  Clock, BookOpen, Tag, X,
+  ChevronLeft, ChevronRight, Loader2, Plus, X,
 } from "lucide-react";
-import { EVENTS, MEMBERS } from "@/lib/data";
+import { DOCUMENTS, EVENTS, MEMBERS } from "@/lib/data";
 import { daysUntil } from "@/lib/utils";
-import type { CalendarEvent, EventType } from "@/types";
+import { createClient } from "@/lib/supabase/client";
+import AppSelect from "@/components/ui/AppSelect";
+import {
+  EVENT_CELL_BG,
+  EVENT_DOT,
+  EVENT_ICON,
+  EVENT_LABEL,
+  EVENT_PILL,
+  EVENT_PRIORITY,
+  EVENT_TYPES,
+} from "@/lib/eventTypes";
+import type { CalendarEvent, EventType, Member, ReminderFrequency } from "@/types";
 import clsx from "clsx";
 
 const MONTHS_SL = [
@@ -16,62 +26,88 @@ const MONTHS_SL = [
 ];
 const DAYS_SL = ["Pon","Tor","Sre","Čet","Pet","Sob","Ned"];
 
-const EVENT_DOT: Record<string, string> = {
-  birthday: "bg-purple-500",
-  holiday:  "bg-amber-500",
-  deadline: "bg-expense-500",
-  school:   "bg-brand-500",
-  other:    "bg-neutral-400",
-};
-const EVENT_CELL_BG: Record<string, string> = {
-  deadline: "bg-expense-50 ring-1 ring-expense-200",
-  birthday: "bg-purple-50 ring-1 ring-purple-200",
-  holiday:  "bg-amber-50 ring-1 ring-amber-200",
-  school:   "bg-brand-50 ring-1 ring-brand-200",
-  other:    "bg-neutral-100",
-};
-const EVENT_PILL: Record<string, string> = {
-  birthday: "pill pill-purple",
-  holiday:  "pill pill-amber",
-  deadline: "pill pill-red",
-  school:   "pill pill-amber",
-  other:    "pill pill-blue",
-};
-const EVENT_LABEL: Record<string, string> = {
-  birthday: "Rojstni dan",
-  holiday:  "Dopust",
-  deadline: "Rok",
-  school:   "Šola",
-  other:    "Ostalo",
-};
-const EVENT_ICON: Record<string, React.ReactNode> = {
-  birthday: <Cake size={14} />,
-  holiday:  <Plane size={14} />,
-  deadline: <Clock size={14} />,
-  school:   <BookOpen size={14} />,
-  other:    <Tag size={14} />,
-};
-const EVENT_TYPES: EventType[] = ["birthday","holiday","deadline","school","other"];
-const EVENT_PRIORITY = ["deadline","birthday","holiday","school","other"];
-
-function primaryType(evs: CalendarEvent[]): string {
+function primaryType(evs: CalendarEvent[]): EventType {
   for (const t of EVENT_PRIORITY) if (evs.some((e) => e.type === t)) return t;
   return "other";
 }
 
+function mapEvent(row: Record<string, unknown>): CalendarEvent {
+  return {
+    id: String(row.id),
+    title: String(row.title),
+    date: String(row.date),
+    type: row.type as EventType,
+    memberId: row.member_id ? String(row.member_id) : undefined,
+    personName: row.person_name ? String(row.person_name) : undefined,
+    description: row.description ? String(row.description) : undefined,
+    notes: row.notes ? String(row.notes) : undefined,
+    reminderEnabled: Boolean(row.reminder_enabled),
+    reminderFrequency: (row.reminder_frequency as ReminderFrequency | null) ?? "none",
+    reminderPattern: row.reminder_pattern ? String(row.reminder_pattern) : undefined,
+    source: (row.source as CalendarEvent["source"] | null) ?? "manual",
+  };
+}
+
+function mapMember(row: Record<string, unknown>): Member {
+  return {
+    id: String(row.id),
+    name: String(row.name),
+    initials: String(row.initials),
+    type: row.type as Member["type"],
+    birthDate: row.birth_date ? String(row.birth_date) : undefined,
+    color: row.color ? String(row.color) : "bg-neutral-100 text-neutral-500",
+    isAdmin: Boolean(row.is_admin),
+  };
+}
+
+function documentEvent(doc: Record<string, unknown>): CalendarEvent | null {
+  const expiryDate = doc.expiry_date ? String(doc.expiry_date) : undefined;
+  const documentDate = doc.document_date ? String(doc.document_date) : undefined;
+  const status = doc.status ? String(doc.status) : "";
+  const dueDate = expiryDate ?? (status === "pending_confirm" ? documentDate : undefined);
+  if (!dueDate) return null;
+  return {
+    id: `doc-${String(doc.id)}`,
+    title: expiryDate ? `Obveznost — ${String(doc.name)}` : `Valuta — ${String(doc.name)}`,
+    date: dueDate,
+    type: expiryDate ? "obligation" : "payment_due",
+    notes: doc.ocr_amount ? `${Number(doc.ocr_amount)} EUR` : undefined,
+    source: "document",
+    reminderEnabled: true,
+    reminderFrequency: "none",
+  };
+}
+
+const MOCK_FINANCIAL_EVENTS: CalendarEvent[] = DOCUMENTS.flatMap((doc) => {
+  const dueDate = doc.expiryDate ?? (doc.status === "pending_confirm" ? doc.documentDate : undefined);
+  if (!dueDate) return [];
+  return [{
+    id: `doc-${doc.id}`,
+    title: doc.expiryDate ? `Obveznost — ${doc.name}` : `Valuta — ${doc.name}`,
+    date: dueDate,
+    type: doc.expiryDate ? "obligation" : "payment_due",
+    notes: doc.ocrAmount ? `${doc.ocrAmount} EUR` : undefined,
+    source: "document",
+    reminderEnabled: true,
+    reminderFrequency: "none",
+  }];
+});
+
 // ── Modal za dodajanje dogodka ────────────────────────────────
 interface ModalProps {
   defaultDate: string;
+  members: Member[];
   onSave: (ev: Omit<CalendarEvent, "id">) => void;
   onClose: () => void;
 }
 
-function EventModal({ defaultDate, onSave, onClose }: ModalProps) {
+function EventModal({ defaultDate, members, onSave, onClose }: ModalProps) {
   const [form, setForm] = useState({
     title:    "",
     date:     defaultDate,
     type:     "other" as EventType,
     memberId: "",
+    personName: "",
     notes:    "",
   });
 
@@ -84,7 +120,8 @@ function EventModal({ defaultDate, onSave, onClose }: ModalProps) {
       title:    form.title.trim(),
       date:     form.date,
       type:     form.type,
-      memberId: form.memberId || undefined,
+      memberId: form.memberId && form.memberId !== "__other__" ? form.memberId : undefined,
+      personName: form.memberId === "__other__" ? form.personName.trim() || undefined : undefined,
       notes:    form.notes.trim() || undefined,
     });
   }
@@ -148,17 +185,30 @@ function EventModal({ defaultDate, onSave, onClose }: ModalProps) {
           {/* Član */}
           <div>
             <label className="block text-xs text-neutral-500 mb-1">Član (neobvezno)</label>
-            <select
+            <AppSelect
               value={form.memberId}
-              onChange={(e) => setForm((f) => ({ ...f, memberId: e.target.value }))}
-              className="w-full text-sm border border-neutral-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-brand-400 bg-white"
-            >
-              <option value="">— skupno —</option>
-              {MEMBERS.map((m) => (
-                <option key={m.id} value={m.id}>{m.name}</option>
-              ))}
-            </select>
+              placeholder="— skupno —"
+              options={[
+                { value: "", label: "— skupno —" },
+                { value: "__other__", label: "Druga oseba" },
+                ...members.map((m) => ({ value: m.id, label: m.name })),
+              ]}
+              onChange={(memberId) => setForm((f) => ({ ...f, memberId }))}
+            />
           </div>
+
+          {form.memberId === "__other__" && (
+            <div>
+              <label className="block text-xs text-neutral-500 mb-1">Ime osebe</label>
+              <input
+                type="text"
+                value={form.personName}
+                onChange={(e) => setForm((f) => ({ ...f, personName: e.target.value }))}
+                placeholder="npr. mama, oče, babica"
+                className="input"
+              />
+            </div>
+          )}
 
           {/* Opomba */}
           <div>
@@ -200,7 +250,10 @@ export default function Calendar() {
     String(today.getDate()).padStart(2, "0"),
   ].join("-");
 
-  const [events, setEvents] = useState<CalendarEvent[]>(EVENTS);
+  const [events, setEvents] = useState<CalendarEvent[]>([...EVENTS, ...MOCK_FINANCIAL_EVENTS]);
+  const [members, setMembers] = useState<Member[]>(MEMBERS);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [viewDate, setViewDate] = useState(new Date(today.getFullYear(), today.getMonth(), 1));
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
@@ -210,6 +263,38 @@ export default function Calendar() {
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const firstDayOfWeek = (new Date(year, month, 1).getDay() + 6) % 7;
 
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    setError("");
+    const supabase = createClient();
+    const [{ data: eventRows, error: eventsError }, { data: memberRows, error: membersError }, { data: docRows, error: docsError }] = await Promise.all([
+      supabase.from("events").select("*").order("date", { ascending: true }),
+      supabase.from("members").select("*").order("name", { ascending: true }),
+      supabase
+        .from("documents")
+        .select("id,name,status,document_date,expiry_date,ocr_amount")
+        .or("expiry_date.not.is.null,document_date.not.is.null"),
+    ]);
+
+    if (eventsError || membersError || docsError) {
+      setError(eventsError?.message ?? membersError?.message ?? docsError?.message ?? "Napaka pri nalaganju koledarja.");
+      setEvents([...EVENTS, ...MOCK_FINANCIAL_EVENTS]);
+      setMembers(MEMBERS);
+      setLoading(false);
+      return;
+    }
+
+    const financialEvents = (docRows ?? [])
+      .map((row) => documentEvent(row))
+      .filter((event): event is CalendarEvent => event !== null);
+
+    setEvents([...(eventRows ?? []).map((row) => mapEvent(row)), ...financialEvents]);
+    setMembers((memberRows ?? []).map((row) => mapMember(row)));
+    setLoading(false);
+  }, []);
+
+  useEffect(() => { fetchData(); }, [fetchData]);
+
   function prevMonth() { setViewDate(new Date(year, month - 1, 1)); setSelectedDate(null); }
   function nextMonth() { setViewDate(new Date(year, month + 1, 1)); setSelectedDate(null); }
 
@@ -218,8 +303,41 @@ export default function Calendar() {
   }
   function eventsOn(day: number) { return events.filter((e) => e.date === toDateStr(day)); }
 
-  function addEvent(data: Omit<CalendarEvent, "id">) {
-    setEvents((prev) => [...prev, { ...data, id: `e-${Date.now()}` }]);
+  async function addEvent(data: Omit<CalendarEvent, "id">) {
+    const supabase = createClient();
+    const { data: householdId, error: householdError } = await supabase.rpc("get_household_id");
+    if (householdError || !householdId) {
+      setError(householdError?.message ?? "Gospodinjstvo ni najdeno.");
+      return;
+    }
+
+    const { data: inserted, error: insertError } = await supabase
+      .from("events")
+      .insert({
+        household_id: householdId,
+        title: data.title,
+        date: data.date,
+        type: data.type,
+        member_id: data.memberId ?? null,
+        person_name: data.personName ?? null,
+        notes: data.notes ?? null,
+        description: data.description ?? data.notes ?? null,
+        reminder_enabled: data.reminderEnabled ?? false,
+        reminder_frequency: data.reminderFrequency ?? "none",
+        reminder_pattern: data.reminderPattern ?? null,
+        source: data.source ?? "manual",
+      })
+      .select()
+      .single();
+
+    if (insertError) {
+      setError(insertError.message);
+      return;
+    }
+
+    if (inserted) {
+      setEvents((prev) => [...prev, mapEvent(inserted)]);
+    }
     setShowModal(false);
   }
 
@@ -258,6 +376,18 @@ export default function Calendar() {
           <Plus size={14} />Nov dogodek
         </button>
       </div>
+
+      {error && (
+        <div className="rounded-lg border border-expense-200 bg-expense-50 px-3 py-2 text-xs text-expense-700">
+          {error}
+        </div>
+      )}
+
+      {loading && (
+        <div className="flex items-center gap-2 text-sm text-neutral-400">
+          <Loader2 size={16} className="animate-spin" />Nalagam koledar...
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
 
@@ -366,7 +496,8 @@ export default function Calendar() {
             ) : (
               <div>
                 {(selectedDate ? selectedEvents : thisMonthEvents).map((ev) => {
-                  const member = MEMBERS.find((m) => m.id === ev.memberId);
+                  const member = members.find((m) => m.id === ev.memberId);
+                  const personLabel = member?.name ?? ev.personName;
                   const d = new Date(ev.date);
                   return (
                     <div key={ev.id} className="flex items-center gap-3 py-2.5 border-b border-neutral-50 last:border-0">
@@ -378,7 +509,9 @@ export default function Calendar() {
                       </div>
                       <div className={clsx(
                         "w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0",
-                        ev.type === "deadline" ? "bg-expense-50 text-expense-700" :
+                        ev.type === "payment_due" ? "bg-expense-50 text-expense-700" :
+                        ev.type === "doctor"   ? "bg-teal-50 text-teal-700" :
+                        ev.type === "medication" ? "bg-emerald-50 text-emerald-700" :
                         ev.type === "birthday" ? "bg-purple-50 text-purple-700" :
                         ev.type === "school"   ? "bg-brand-50 text-brand-600" :
                         "bg-warn-50 text-warn-700"
@@ -387,9 +520,9 @@ export default function Calendar() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="text-xs font-medium text-neutral-800 truncate">{ev.title}</div>
-                        {(ev.notes || member) && (
+                        {(ev.notes || personLabel) && (
                           <div className="text-[10px] text-neutral-400">
-                            {ev.notes}{ev.notes && member ? " · " : ""}{member?.name}
+                            {ev.notes}{ev.notes && personLabel ? " · " : ""}{personLabel}
                           </div>
                         )}
                       </div>
@@ -413,7 +546,8 @@ export default function Calendar() {
             <div>
               {upcoming.map((ev) => {
                 const d = new Date(ev.date);
-                const member = MEMBERS.find((m) => m.id === ev.memberId);
+                const member = members.find((m) => m.id === ev.memberId);
+                const personLabel = member?.name ?? ev.personName;
                 return (
                   <div key={ev.id} className="flex items-center gap-3 py-2.5 border-b border-neutral-50 last:border-0">
                     <div className="w-9 text-center flex-shrink-0">
@@ -426,7 +560,7 @@ export default function Calendar() {
                       <div className="text-xs font-medium text-neutral-800 truncate">{ev.title}</div>
                       <div className="text-[10px] text-neutral-400">
                         {ev.days === 0 ? "danes" : `čez ${ev.days} dni`}
-                        {member ? ` · ${member.name}` : ""}
+                        {personLabel ? ` · ${personLabel}` : ""}
                       </div>
                     </div>
                     <span className={clsx("pill text-[10px] flex-shrink-0", EVENT_PILL[ev.type])}>
@@ -444,6 +578,7 @@ export default function Calendar() {
       {showModal && (
         <EventModal
           defaultDate={selectedDate ?? todayStr}
+          members={members}
           onSave={addEvent}
           onClose={() => setShowModal(false)}
         />

@@ -1,15 +1,18 @@
 "use client";
 
 import { useState } from "react";
+import dynamic from "next/dynamic";
 import Sidebar from "@/components/layout/Sidebar";
-import Dashboard from "@/components/modules/Dashboard";
-import Finance from "@/components/modules/Finance";
-import Documents from "@/components/modules/Documents";
-import Members from "@/components/modules/Members";
-import Calculators from "@/components/modules/Calculators";
-import Calendar from "@/components/modules/Calendar";
-import Settings from "@/components/modules/Settings";
 import type { ModuleId } from "@/types";
+
+const Dashboard   = dynamic(() => import("@/components/modules/Dashboard"));
+const Finance     = dynamic(() => import("@/components/modules/Finance"));
+const Documents   = dynamic(() => import("@/components/modules/Documents"));
+const Members     = dynamic(() => import("@/components/modules/Members"));
+const Calculators = dynamic(() => import("@/components/modules/Calculators"));
+const Calendar    = dynamic(() => import("@/components/modules/Calendar"));
+const Events      = dynamic(() => import("@/components/modules/Events"));
+const Settings    = dynamic(() => import("@/components/modules/Settings"));
 
 const MODULES: Record<ModuleId, React.ReactNode> = {
   dashboard:   <Dashboard />,
@@ -18,6 +21,7 @@ const MODULES: Record<ModuleId, React.ReactNode> = {
   members:     <Members />,
   calculators: <Calculators />,
   calendar:    <Calendar />,
+  events:      <Events />,
   settings:    <Settings />,
 };
 

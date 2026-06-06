@@ -59,6 +59,7 @@ export interface Database {
           file_path: string | null; ocr_amount: number | null;
           ocr_suggested_category: string | null; ocr_raw_text: string | null;
           linked_transaction_id: string | null; expiry_date: string | null;
+          file_hash: string | null; file_size: number | null; mime_type: string | null;
         };
         Insert: Omit<Database["public"]["Tables"]["documents"]["Row"], "id" | "uploaded_at"> & { id?: string };
         Update: Partial<Database["public"]["Tables"]["documents"]["Insert"]>;
@@ -67,6 +68,8 @@ export interface Database {
         Row: {
           id: string; household_id: string; title: string; date: string;
           type: string; member_id: string | null; notes: string | null; created_at: string;
+          description: string | null; person_name: string | null; reminder_enabled: boolean;
+          reminder_frequency: string; reminder_pattern: string | null; source: string;
         };
         Insert: Omit<Database["public"]["Tables"]["events"]["Row"], "id" | "created_at"> & { id?: string };
         Update: Partial<Database["public"]["Tables"]["events"]["Insert"]>;
@@ -75,6 +78,7 @@ export interface Database {
     Views: Record<string, never>;
     Functions: {
       get_household_id: { Args: Record<string, never>; Returns: string };
+      setup_household: { Args: { p_household_name: string; p_member_name: string }; Returns: string };
     };
   };
 }

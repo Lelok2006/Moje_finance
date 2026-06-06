@@ -8,22 +8,8 @@ import {
   TRANSACTIONS, BUDGET, EVENTS, MONTHLY_DATA, CATEGORIES,
 } from "@/lib/data";
 import { formatEur, formatDateShort, budgetColor, daysUntil, getCategory } from "@/lib/utils";
+import { EVENT_LABEL, EVENT_PILL } from "@/lib/eventTypes";
 import clsx from "clsx";
-
-const EVENT_PILL: Record<string, string> = {
-  birthday: "pill pill-purple",
-  holiday:  "pill pill-amber",
-  deadline: "pill pill-red",
-  school:   "pill pill-amber",
-  other:    "pill pill-blue",
-};
-const EVENT_LABEL: Record<string, string> = {
-  birthday: "Rojstni dan",
-  holiday:  "Dopust",
-  deadline: "Rok",
-  school:   "Šola",
-  other:    "Ostalo",
-};
 
 export default function Dashboard() {
   const thisMonth = TRANSACTIONS;

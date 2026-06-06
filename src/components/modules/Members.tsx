@@ -1,26 +1,10 @@
 "use client";
 
-import { UserPlus, Cake, Plane, Clock, BookOpen } from "lucide-react";
+import { UserPlus } from "lucide-react";
 import { MEMBERS, TRANSACTIONS, EVENTS } from "@/lib/data";
 import { formatEur, formatDate, daysUntil } from "@/lib/utils";
+import { EVENT_ICON, EVENT_LABEL, EVENT_PILL } from "@/lib/eventTypes";
 import clsx from "clsx";
-
-const EVENT_ICON: Record<string, React.ReactNode> = {
-  birthday: <Cake size={14} />,
-  holiday:  <Plane size={14} />,
-  deadline: <Clock size={14} />,
-  school:   <BookOpen size={14} />,
-};
-const EVENT_PILL: Record<string, string> = {
-  birthday: "pill pill-purple",
-  holiday:  "pill pill-amber",
-  deadline: "pill pill-red",
-  school:   "pill pill-amber",
-};
-const EVENT_LABEL: Record<string, string> = {
-  birthday: "Rojstni dan", holiday: "Dopust",
-  deadline: "Rok", school: "Šola",
-};
 
 const MEMBER_COLORS: Record<string, { card: string; avatar: string }> = {
   mojca: { card: "border-brand-100",  avatar: "bg-brand-50 text-brand-600" },
@@ -99,7 +83,9 @@ export default function Members() {
                   </div>
                 </div>
                 <div className={clsx("w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 text-neutral-500",
-                  ev.type === "deadline" ? "bg-expense-50 text-expense-700" :
+                  ev.type === "payment_due" ? "bg-expense-50 text-expense-700" :
+                  ev.type === "doctor" ? "bg-teal-50 text-teal-700" :
+                  ev.type === "medication" ? "bg-emerald-50 text-emerald-700" :
                   ev.type === "birthday" ? "bg-purple-50 text-purple-700" :
                   "bg-warn-50 text-warn-700"
                 )}>

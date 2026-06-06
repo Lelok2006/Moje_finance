@@ -21,37 +21,12 @@ export default function SetupPage() {
     setError(null);
     setLoading(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Ni prijavljenega uporabnika.");
-
-      // 1. Ustvari gospodinjstvo
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const db = supabase as any;
-
-      const { data: household, error: hErr } = await db
-        .from("households")
-        .insert({ name: householdName.trim(), currency: "EUR", country: "Slovenija", tax_scale: "SLO 2026" })
-        .select()
-        .single();
-      if (hErr) throw hErr;
-
-      const { error: pErr } = await db
-        .from("user_profiles")
-        .insert({ id: user.id, household_id: household.id });
-      if (pErr) throw pErr;
-
-      const initials = memberName.trim().split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
-      const { error: mErr } = await db
-        .from("members")
-        .insert({
-          household_id: household.id,
-          name: memberName.trim(),
-          initials,
-          type: "adult",
-          color: "bg-brand-50 text-brand-600",
-          is_admin: true,
-        });
-      if (mErr) throw mErr;
+      const { error } = await (supabase as any).rpc("setup_household", {
+        p_household_name: householdName.trim(),
+        p_member_name: memberName.trim(),
+      });
+      if (error) throw error;
 
       router.push("/");
       router.refresh();
@@ -106,6 +81,7 @@ export default function SetupPage() {
                   type="text"
                   value={householdName}
                   onChange={(e) => setHouseholdName(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && householdName.trim().length >= 2 && setStep(2)}
                   placeholder="npr. Novak, Naša hiša…"
                   className="input"
                 />
@@ -130,6 +106,7 @@ export default function SetupPage() {
                   type="text"
                   value={memberName}
                   onChange={(e) => setMemberName(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && memberName.trim().length >= 2 && !loading && handleCreate()}
                   placeholder="npr. Ana Novak"
                   className="input"
                 />

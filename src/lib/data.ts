@@ -39,6 +39,7 @@ export const CATEGORIES: Category[] = [
   { code: "3200", name: "Izobraževanje",        type: "variable" },
   { code: "3300", name: "Obleka in obutev",     type: "variable" },
   { code: "3400", name: "Zabava / prosti čas",  type: "variable" },
+  { code: "3410", name: "Naročnine",            type: "variable", parentCode: "3400", icon: "tv" },
   { code: "3500", name: "Potovanja",            type: "variable" },
   { code: "3600", name: "Dom (popravila)",      type: "variable" },
   { code: "3700", name: "Otroci",               type: "variable", icon: "baby" },
@@ -118,10 +119,13 @@ export const DOCUMENTS: Document[] = [
 
 // ── DOGODKI ───────────────────────────────────────────────────
 export const EVENTS: CalendarEvent[] = [
-  { id: "e1", title: "Počitnice",                  date: "2026-07-15", type: "holiday",  notes: "18 dni" },
-  { id: "e2", title: "Zavarovanje — rok obnove",   date: "2026-08-01", type: "deadline", notes: "Avtomobilska polica" },
-  { id: "e3", title: "Šola — začetek leta",         date: "2026-09-01", type: "school",   memberId: "member3" },
-  { id: "e4", title: "Rojstni dan — Eva",           date: "2027-05-10", type: "birthday", memberId: "member3" },
+  { id: "e1", title: "Počitnice",                date: "2026-07-15", type: "holiday",     notes: "18 dni", source: "manual" },
+  { id: "e2", title: "Zavarovanje — rok obnove", date: "2026-08-01", type: "obligation",  notes: "Avtomobilska polica", source: "manual", reminderEnabled: true, reminderFrequency: "yearly" },
+  { id: "e3", title: "Šola — začetek leta",      date: "2026-09-01", type: "school",      memberId: "member3", source: "manual" },
+  { id: "e4", title: "Rojstni dan — Eva",        date: "2027-05-10", type: "birthday",    memberId: "member3", source: "manual", reminderEnabled: true, reminderFrequency: "yearly" },
+  { id: "e5", title: "Zdravnik — kontrola",      date: "2026-06-18", type: "doctor",      memberId: "member3", notes: "Zobozdravnik", source: "manual", reminderEnabled: true, reminderFrequency: "none" },
+  { id: "e6", title: "Jutranje zdravilo",        date: "2026-06-06", type: "medication",  memberId: "member1", notes: "1 tableta po zajtrku", source: "medication", reminderEnabled: true, reminderFrequency: "daily", reminderPattern: "08:00" },
+  { id: "e7", title: "Valuta — elektrika",       date: "2026-06-20", type: "payment_due", notes: "Račun 95 EUR", source: "document", reminderEnabled: true, reminderFrequency: "none" },
 ];
 
 // ── GRAFIKON DATA (mesečni) ────────────────────────────────────

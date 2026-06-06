@@ -3,7 +3,7 @@
 import { useState } from "react";
 import {
   LayoutDashboard, Euro, Files, Users,
-  Calculator, Settings, Home, Menu, X, CalendarDays,
+  Calculator, Settings, Home, Menu, X, CalendarDays, BellRing,
 } from "lucide-react";
 import type { ModuleId } from "@/types";
 import clsx from "clsx";
@@ -21,6 +21,7 @@ const NAV_ITEMS: {
   { id: "members",     label: "Člani",            icon: <Users size={16} />,           group: "Moduli" },
   { id: "calculators", label: "Kalkulatorji",     icon: <Calculator size={16} />,      group: "Moduli" },
   { id: "calendar",    label: "Koledar",          icon: <CalendarDays size={16} />,    group: "Moduli" },
+  { id: "events",      label: "Dogodki",          icon: <BellRing size={16} />,        group: "Moduli" },
   { id: "settings",    label: "Nastavitve",       icon: <Settings size={16} />,        group: "Sistem" },
 ];
 

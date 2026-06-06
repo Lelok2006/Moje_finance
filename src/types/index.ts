@@ -49,6 +49,8 @@ export interface Document {
   status: DocumentStatus;
   ocrAmount?: number;
   ocrSuggestedCategory?: string;
+  ocrRawText?: string;
+  filePath?: string;
   linkedTransactionId?: string;
   expiryDate?: string;
 }
@@ -61,7 +63,18 @@ export interface BudgetItem {
 }
 
 // ── Dogodek / opomnik ─────────────────────────────────────────
-export type EventType = "birthday" | "holiday" | "deadline" | "school" | "other";
+export type EventType =
+  | "doctor"
+  | "anniversary"
+  | "birthday"
+  | "medication"
+  | "payment_due"
+  | "obligation"
+  | "holiday"
+  | "school"
+  | "other";
+
+export type ReminderFrequency = "none" | "daily" | "monthly" | "yearly" | "custom";
 
 export interface CalendarEvent {
   id: string;
@@ -69,7 +82,13 @@ export interface CalendarEvent {
   date: string;       // ISO date
   type: EventType;
   memberId?: string;
+  personName?: string;
+  description?: string;
   notes?: string;
+  reminderEnabled?: boolean;
+  reminderFrequency?: ReminderFrequency;
+  reminderPattern?: string;
+  source?: "manual" | "document" | "finance" | "medication";
 }
 
 // ── Navigacijski element ──────────────────────────────────────
@@ -80,4 +99,5 @@ export type ModuleId =
   | "members"
   | "calculators"
   | "calendar"
+  | "events"
   | "settings";
