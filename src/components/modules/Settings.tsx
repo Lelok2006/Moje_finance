@@ -1,9 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { Edit3, Plus, Check, X, Copy, Link, Loader2, RotateCcw } from "lucide-react";
+import { Edit3, Check, X, Copy, Link, Loader2, RotateCcw } from "lucide-react";
 import { CATEGORIES } from "@/lib/data";
+import { EVENT_LABEL, EVENT_PILL, EVENT_TYPES, REMINDER_OPTIONS } from "@/lib/eventTypes";
 import { createClient } from "@/lib/supabase/client";
+import AppSelect from "@/components/ui/AppSelect";
+import type { Category, CategoryType, EventType } from "@/types";
 import clsx from "clsx";
 
 const TYPE_PILL: Record<string, string> = {
@@ -12,8 +15,15 @@ const TYPE_PILL: Record<string, string> = {
   variable: "pill pill-amber",
   savings:  "pill pill-blue",
 };
-const TYPE_LABEL: Record<string, string> = {
-  income: "Prihodki", fixed: "Stalni", variable: "Variabilni", savings: "Prihranki",
+const TYPE_LABEL: Record<CategoryType, string> = {
+  income: "Prihodki", fixed: "Stalni odhodki", variable: "Spremenljivi odhodki", savings: "Prihranki",
+};
+
+const TYPE_HINT: Record<CategoryType, string> = {
+  income: "Samo prilivi: plača, regres, honorarji, socialni transferji.",
+  fixed: "Redni odhodki: stanovanje, transport, zavarovanja in naročnine.",
+  variable: "Spremenljivi odhodki: prehrana, zdravje, otroci, prosti čas.",
+  savings: "Premiki v varčevanje in dolgoročne rezerve.",
 };
 
 const NOTIFS = [
@@ -35,13 +45,57 @@ type HouseholdKey = typeof HOUSEHOLD_FIELDS[number]["key"];
 
 const topLevelTypes = ["income", "fixed", "variable", "savings"] as const;
 
+const PRICE_PLANS = [
+  {
+    name: "Osnovni",
+    price: "0 €",
+    note: "za osebno testiranje",
+    features: ["1 gospodinjstvo", "ročni vnosi", "osnovni koledar", "lokalni testni reset"],
+  },
+  {
+    name: "Družinski",
+    price: "9 €",
+    note: "na mesec",
+    features: ["več članov", "OCR računov", "opomniki in dogodki", "arhiv dokumentov"],
+    highlighted: true,
+  },
+  {
+    name: "Skrbnik",
+    price: "19 €",
+    note: "na mesec",
+    features: ["več gospodinjstev", "skrb za starše", "napredni opomniki", "prednostna podpora"],
+  },
+];
+
+type EditableEventType = {
+  type: EventType;
+  label: string;
+  defaultReminder: string;
+};
+
+function buildEventCodebook(): EditableEventType[] {
+  return EVENT_TYPES.map((type) => ({
+    type,
+    label: EVENT_LABEL[type],
+    defaultReminder: type === "birthday" || type === "anniversary" ? "yearly" :
+      type === "medication" ? "daily" :
+        type === "payment_due" || type === "doctor" ? "none" : "none",
+  }));
+}
+
 export default function Settings() {
   const supabase = createClient();
 
   const [toggles, setToggles] = useState<Record<string, boolean>>(
     Object.fromEntries(NOTIFS.map((n) => [n.id, n.on]))
   );
-  const [openType, setOpenType] = useState<string | null>("income");
+  const [categories, setCategories] = useState<Category[]>(CATEGORIES);
+  const [eventCodebook, setEventCodebook] = useState<EditableEventType[]>(buildEventCodebook);
+  const [openType, setOpenType] = useState<CategoryType | null>("income");
+  const [editingCategory, setEditingCategory] = useState<string | null>(null);
+  const [categoryDraft, setCategoryDraft] = useState("");
+  const [editingEvent, setEditingEvent] = useState<EventType | null>(null);
+  const [eventDraft, setEventDraft] = useState({ label: "", defaultReminder: "none" });
 
   // Povabilo
   const [inviteLink, setInviteLink] = useState<string | null>(null);
@@ -76,7 +130,7 @@ export default function Settings() {
   }
 
   const [household, setHousehold] = useState<Record<HouseholdKey, string>>({
-    name:     "Novak",
+    name:     "Moje gospodinjstvo",
     currency: "EUR €",
     country:  "Slovenija",
     taxScale: "SLO 2026",
@@ -90,6 +144,37 @@ export default function Settings() {
 
   const toggle = (id: string) =>
     setToggles((prev) => ({ ...prev, [id]: !prev[id] }));
+
+  function startCategoryEdit(category: Category) {
+    setEditingCategory(category.code);
+    setCategoryDraft(category.name);
+  }
+
+  function saveCategoryEdit(code: string) {
+    setCategories((current) => current.map((category) =>
+      category.code === code ? { ...category, name: categoryDraft.trim() || category.name } : category
+    ));
+    setEditingCategory(null);
+    setCategoryDraft("");
+  }
+
+  function startEventEdit(item: EditableEventType) {
+    setEditingEvent(item.type);
+    setEventDraft({ label: item.label, defaultReminder: item.defaultReminder });
+  }
+
+  function saveEventEdit(type: EventType) {
+    setEventCodebook((current) => current.map((item) =>
+      item.type === type
+        ? {
+          ...item,
+          label: eventDraft.label.trim() || item.label,
+          defaultReminder: eventDraft.defaultReminder,
+        }
+        : item
+    ));
+    setEditingEvent(null);
+  }
 
   async function resetTestData() {
     const confirmed = window.confirm(
@@ -126,12 +211,14 @@ export default function Settings() {
         {/* Šifranti */}
         <div className="card">
           <div className="card-title">
-            Šifranti — kategorije
-            <button className="btn-secondary text-xs"><Plus size={12} />Nova kategorija</button>
+            Šifranti — kategorije financ
           </div>
+          <p className="text-xs text-neutral-500 mb-3">
+            Prihodki, odhodki in prihranki so ločeni po tipu, da se kategorije ne mešajo pri vnosih.
+          </p>
 
           {topLevelTypes.map((type) => {
-            const parents = CATEGORIES.filter((c) => c.type === type && !c.parentCode);
+            const parents = categories.filter((c) => c.type === type && !c.parentCode);
             const isOpen = openType === type;
             return (
               <div key={type} className="mb-1">
@@ -144,30 +231,67 @@ export default function Settings() {
                     {TYPE_LABEL[type]}
                   </span>
                   <span className={clsx("pill text-[10px]", TYPE_PILL[type])}>
-                    {CATEGORIES.filter((c) => c.type === type).length}
+                    {categories.filter((c) => c.type === type).length}
                   </span>
                 </button>
 
                 {isOpen && (
                   <div className="ml-3 border-l border-neutral-100 pl-3 mb-2">
+                    <p className="text-[10px] text-neutral-400 mb-2">{TYPE_HINT[type]}</p>
                     {parents.map((parent) => {
-                      const children = CATEGORIES.filter((c) => c.parentCode === parent.code);
+                      const children = categories.filter((c) => c.parentCode === parent.code);
                       return (
                         <div key={parent.code}>
                           <div className="flex items-center gap-2 py-1.5">
                             <span className="sif-code">{parent.code}</span>
-                            <span className="text-xs font-medium text-neutral-700 flex-1">{parent.name}</span>
-                            <button className="text-neutral-300 hover:text-neutral-500 p-0.5">
-                              <Edit3 size={11} />
-                            </button>
+                            {editingCategory === parent.code ? (
+                              <>
+                                <input
+                                  className="input h-8 text-xs flex-1"
+                                  value={categoryDraft}
+                                  onChange={(e) => setCategoryDraft(e.target.value)}
+                                />
+                                <button className="btn-ghost p-1" onClick={() => saveCategoryEdit(parent.code)} aria-label="Shrani">
+                                  <Check size={12} />
+                                </button>
+                                <button className="btn-ghost p-1" onClick={() => setEditingCategory(null)} aria-label="Prekliči">
+                                  <X size={12} />
+                                </button>
+                              </>
+                            ) : (
+                              <>
+                                <span className="text-xs font-medium text-neutral-700 flex-1">{parent.name}</span>
+                                <button className="text-neutral-300 hover:text-neutral-500 p-0.5" onClick={() => startCategoryEdit(parent)}>
+                                  <Edit3 size={11} />
+                                </button>
+                              </>
+                            )}
                           </div>
                           {children.map((child) => (
                             <div key={child.code} className="flex items-center gap-2 py-1 pl-4">
                               <span className="sif-code">{child.code}</span>
-                              <span className="text-xs text-neutral-500 flex-1">{child.name}</span>
-                              <button className="text-neutral-200 hover:text-neutral-400 p-0.5">
-                                <Edit3 size={11} />
-                              </button>
+                              {editingCategory === child.code ? (
+                                <>
+                                  <input
+                                    className="input h-8 text-xs flex-1"
+                                    value={categoryDraft}
+                                    onChange={(e) => setCategoryDraft(e.target.value)}
+                                  />
+                                  <button className="btn-ghost p-1" onClick={() => saveCategoryEdit(child.code)} aria-label="Shrani">
+                                    <Check size={12} />
+                                  </button>
+                                  <button className="btn-ghost p-1" onClick={() => setEditingCategory(null)} aria-label="Prekliči">
+                                    <X size={12} />
+                                  </button>
+                                </>
+                              ) : (
+                                <>
+                                  <span className="text-xs text-neutral-500 flex-1">{child.name}</span>
+                                  <button className="text-neutral-200 hover:text-neutral-400 p-0.5" onClick={() => startCategoryEdit(child)}>
+                                    <Edit3 size={11} />
+                                  </button>
+                                </>
+                              )}
                             </div>
                           ))}
                         </div>
@@ -179,6 +303,57 @@ export default function Settings() {
               </div>
             );
           })}
+        </div>
+
+        <div className="card">
+          <div className="card-title">
+            Šifranti — dogodki
+          </div>
+          <p className="text-xs text-neutral-500 mb-3">
+            Tip dogodka določa barvo v koledarju in privzeto logiko opomnika.
+          </p>
+          <div className="space-y-2">
+            {eventCodebook.map((item) => (
+              <div key={item.type} className="flex items-center gap-2 py-2 border-b border-neutral-50 last:border-0">
+                <span className="sif-code w-24">{item.type}</span>
+                {editingEvent === item.type ? (
+                  <>
+                    <input
+                      className="input h-8 text-xs flex-1"
+                      value={eventDraft.label}
+                      onChange={(e) => setEventDraft((draft) => ({ ...draft, label: e.target.value }))}
+                    />
+                    <div className="w-36">
+                      <AppSelect
+                      value={eventDraft.defaultReminder}
+                        placeholder="Opomnik"
+                        options={REMINDER_OPTIONS}
+                        onChange={(defaultReminder) => setEventDraft((draft) => ({ ...draft, defaultReminder }))}
+                      />
+                    </div>
+                    <button className="btn-ghost p-1" onClick={() => saveEventEdit(item.type)} aria-label="Shrani">
+                      <Check size={12} />
+                    </button>
+                    <button className="btn-ghost p-1" onClick={() => setEditingEvent(null)} aria-label="Prekliči">
+                      <X size={12} />
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <span className={clsx("pill text-[10px] w-24 justify-center", EVENT_PILL[item.type])}>
+                      {item.label}
+                    </span>
+                    <span className="text-xs text-neutral-400 flex-1">
+                      Privzeto: {REMINDER_OPTIONS.find((option) => option.value === item.defaultReminder)?.label}
+                    </span>
+                    <button className="text-neutral-300 hover:text-neutral-500 p-0.5" onClick={() => startEventEdit(item)}>
+                      <Edit3 size={11} />
+                    </button>
+                  </>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Desni stolpec */}
@@ -286,6 +461,37 @@ export default function Settings() {
                 </button>
               </div>
             )}
+          </div>
+
+          <div className="card">
+            <div className="card-title">Cenik</div>
+            <div className="grid grid-cols-1 gap-2">
+              {PRICE_PLANS.map((plan) => (
+                <div
+                  key={plan.name}
+                  className={clsx(
+                    "rounded-lg border px-3 py-3",
+                    plan.highlighted ? "border-brand-200 bg-brand-50/60" : "border-neutral-100 bg-white"
+                  )}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="text-sm font-semibold text-neutral-900">{plan.name}</div>
+                      <div className="text-[10px] text-neutral-400">{plan.note}</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-base font-semibold text-neutral-900">{plan.price}</div>
+                      {plan.highlighted && <span className="pill pill-blue text-[10px]">priporočeno</span>}
+                    </div>
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-1">
+                    {plan.features.map((feature) => (
+                      <span key={feature} className="pill pill-gray text-[10px]">{feature}</span>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
 
           {/* Verzija */}

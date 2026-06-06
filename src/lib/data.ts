@@ -52,90 +52,11 @@ export const CATEGORIES: Category[] = [
   { code: "4030", name: "Pokojninsko (3. steber)", type: "savings", parentCode: "4000" },
 ];
 
-// ── ČLANI — demo podatki (bodo zamenjani s Supabase) ─────────
-export const MEMBERS: Member[] = [
-  {
-    id: "member1",
-    name: "Maja N.",
-    initials: "MN",
-    type: "adult",
-    birthDate: "1987-06-15",
-    color: "bg-brand-50 text-brand-600",
-    isAdmin: true,
-  },
-  {
-    id: "member2",
-    name: "Andrej N.",
-    initials: "AN",
-    type: "adult",
-    birthDate: "1985-09-22",
-    color: "bg-income-50 text-income-700",
-  },
-  {
-    id: "member3",
-    name: "Eva N.",
-    initials: "EN",
-    type: "child",
-    birthDate: "2014-05-10",
-    color: "bg-warn-50 text-warn-700",
-  },
-];
-
-// ── TRANSAKCIJE (junij 2026) — demo podatki ──────────────────
-export const TRANSACTIONS: Transaction[] = [
-  { id: "t1",  date: "2026-06-01", description: "Plača — Maja",          amount: 2100, type: "income",  categoryCode: "1010", memberId: "member1" },
-  { id: "t2",  date: "2026-06-01", description: "Najemnina",             amount: 650,  type: "expense", categoryCode: "2010" },
-  { id: "t3",  date: "2026-06-02", description: "Mercator — tedenski",   amount: 87,   type: "expense", categoryCode: "3010" },
-  { id: "t4",  date: "2026-06-03", description: "Elektrika",             amount: 95,   type: "expense", categoryCode: "2020", documentId: "d1" },
-  { id: "t5",  date: "2026-06-04", description: "Honorar — projekt",     amount: 800,  type: "income",  categoryCode: "1030", memberId: "member1" },
-  { id: "t6",  date: "2026-06-05", description: "Zavarovanje",           amount: 62,   type: "expense", categoryCode: "2060" },
-  { id: "t7",  date: "2026-06-07", description: "Šolske potrebščine",    amount: 45,   type: "expense", categoryCode: "3700", memberId: "member3" },
-  { id: "t8",  date: "2026-06-08", description: "Gorivo",                amount: 78,   type: "expense", categoryCode: "2110" },
-  { id: "t9",  date: "2026-06-10", description: "Komunala",              amount: 42,   type: "expense", categoryCode: "2040", documentId: "d2" },
-  { id: "t10", date: "2026-06-12", description: "Zdravnik",              amount: 25,   type: "expense", categoryCode: "3110", memberId: "member3" },
-];
-
-// ── PRORAČUN ──────────────────────────────────────────────────
-export const BUDGET: BudgetItem[] = [
-  { categoryCode: "2000", monthlyLimit: 700,  currentSpend: 650 },
-  { categoryCode: "3000", monthlyLimit: 400,  currentSpend: 310 },
-  { categoryCode: "3700", monthlyLimit: 250,  currentSpend: 210 },
-  { categoryCode: "2100", monthlyLimit: 200,  currentSpend: 120 },
-  { categoryCode: "3100", monthlyLimit: 150,  currentSpend: 45  },
-  { categoryCode: "3400", monthlyLimit: 100,  currentSpend: 80  },
-  { categoryCode: "3900", monthlyLimit: 100,  currentSpend: 0   },
-];
-
-// ── DOKUMENTI — demo podatki ──────────────────────────────────
-export const DOCUMENTS: Document[] = [
-  { id: "d1", name: "Elektrika — junij",      uploadedAt: "2026-06-03", documentDate: "2026-06-03", type: "invoice",  status: "booked",          ocrAmount: 95,  ocrSuggestedCategory: "2020", linkedTransactionId: "t4" },
-  { id: "d2", name: "Komunala",               uploadedAt: "2026-06-01", documentDate: "2026-06-01", type: "invoice",  status: "booked",          ocrAmount: 42,  ocrSuggestedCategory: "2040", linkedTransactionId: "t9" },
-  { id: "d3", name: "Zavarovanje — polica",   uploadedAt: "2026-01-15", documentDate: "2026-01-15", type: "policy",   status: "archived",        expiryDate: "2026-08-01" },
-  { id: "d4", name: "Najemna pogodba 2026",   uploadedAt: "2026-01-01", documentDate: "2026-01-01", type: "contract", status: "archived" },
-  { id: "d5", name: "Plačilna lista jun",     uploadedAt: "2026-06-01", documentDate: "2026-06-01", type: "payslip",  status: "booked" },
-  { id: "d6", name: "Napoved dohodnine 2025", uploadedAt: "2026-04-01", type: "tax",     status: "archived" },
-  { id: "d7", name: "Nov račun — čaka",       uploadedAt: "2026-06-11", type: "invoice", status: "pending_confirm", ocrAmount: 112, ocrSuggestedCategory: "2030" },
-];
-
-// ── DOGODKI ───────────────────────────────────────────────────
-export const EVENTS: CalendarEvent[] = [
-  { id: "e1", title: "Počitnice",                date: "2026-07-15", type: "holiday",     notes: "18 dni", source: "manual" },
-  { id: "e2", title: "Zavarovanje — rok obnove", date: "2026-08-01", type: "obligation",  notes: "Avtomobilska polica", source: "manual", reminderEnabled: true, reminderFrequency: "yearly" },
-  { id: "e3", title: "Šola — začetek leta",      date: "2026-09-01", type: "school",      memberId: "member3", source: "manual" },
-  { id: "e4", title: "Rojstni dan — Eva",        date: "2027-05-10", type: "birthday",    memberId: "member3", source: "manual", reminderEnabled: true, reminderFrequency: "yearly" },
-  { id: "e5", title: "Zdravnik — kontrola",      date: "2026-06-18", type: "doctor",      memberId: "member3", notes: "Zobozdravnik", source: "manual", reminderEnabled: true, reminderFrequency: "none" },
-  { id: "e6", title: "Jutranje zdravilo",        date: "2026-06-06", type: "medication",  memberId: "member1", notes: "1 tableta po zajtrku", source: "medication", reminderEnabled: true, reminderFrequency: "daily", reminderPattern: "08:00" },
-  { id: "e7", title: "Valuta — elektrika",       date: "2026-06-20", type: "payment_due", notes: "Račun 95 EUR", source: "document", reminderEnabled: true, reminderFrequency: "none" },
-];
-
-// ── GRAFIKON DATA (mesečni) ────────────────────────────────────
-export const MONTHLY_DATA = [
-  { month: "Jan", income: 2900, expense: 2200 },
-  { month: "Feb", income: 3100, expense: 2350 },
-  { month: "Mar", income: 2950, expense: 2100 },
-  { month: "Apr", income: 3200, expense: 2280 },
-  { month: "Maj", income: 3000, expense: 2250 },
-  { month: "Jun", income: 3240, expense: 2180 },
-  { month: "Jul", income: null, expense: null },
-  { month: "Avg", income: null, expense: null },
-];
+// ── PRAZNA STANJA ─────────────────────────────────────────────
+// Demo podatki so odstranjeni, da novi uporabniki in testerji vidijo samo svoje podatke iz Supabase.
+export const MEMBERS: Member[] = [];
+export const TRANSACTIONS: Transaction[] = [];
+export const BUDGET: BudgetItem[] = [];
+export const DOCUMENTS: Document[] = [];
+export const EVENTS: CalendarEvent[] = [];
+export const MONTHLY_DATA: { month: string; income: number | null; expense: number | null }[] = [];

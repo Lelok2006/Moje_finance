@@ -20,6 +20,7 @@ export default function Dashboard() {
 
   const recent = [...thisMonth].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 5);
   const upcoming = [...EVENTS].sort((a, b) => a.date.localeCompare(b.date)).slice(0, 4);
+  const overBudget = BUDGET.find((b) => b.currentSpend / b.monthlyLimit > 0.9);
 
   return (
     <div className="p-4 md:p-6 space-y-4">
@@ -28,7 +29,7 @@ export default function Dashboard() {
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-lg font-semibold text-neutral-900">Nadzorna plošča</h1>
-          <p className="text-xs text-neutral-400 mt-0.5">Junij 2026 · Gospodinjstvo Novak</p>
+          <p className="text-xs text-neutral-400 mt-0.5">Pregled podatkov tvojega gospodinjstva</p>
         </div>
         <button className="btn-secondary text-xs hidden sm:flex">
           Poročilo
@@ -36,12 +37,12 @@ export default function Dashboard() {
       </div>
 
       {/* Alert */}
-      {BUDGET.some((b) => b.currentSpend / b.monthlyLimit > 0.9) && (
+      {overBudget && (
         <div className="alert-warn">
           <AlertTriangle size={14} className="flex-shrink-0" />
           <span>
-            Proračun za <strong>Stanovanje</strong> je na{" "}
-            {Math.round((BUDGET[0].currentSpend / BUDGET[0].monthlyLimit) * 100)} % — preverite odhodke.
+            Ena od kategorij je na{" "}
+            {Math.round((overBudget.currentSpend / overBudget.monthlyLimit) * 100)} % proračuna.
           </span>
         </div>
       )}
@@ -51,17 +52,17 @@ export default function Dashboard() {
         <div className="kpi-card">
           <div className="kpi-label"><TrendingUp size={12} className="text-income-700" />Prihodki</div>
           <div className="kpi-value text-income-700">{formatEur(income)}</div>
-          <div className="kpi-delta">+8 % vs maj</div>
+          <div className="kpi-delta">iz vnosov</div>
         </div>
         <div className="kpi-card">
           <div className="kpi-label"><TrendingDown size={12} className="text-expense-700" />Odhodki</div>
           <div className="kpi-value text-expense-700">{formatEur(expense)}</div>
-          <div className="kpi-delta">−2 % vs maj</div>
+          <div className="kpi-delta">iz vnosov</div>
         </div>
         <div className="kpi-card">
           <div className="kpi-label"><PiggyBank size={12} className="text-brand-600" />Prihranki</div>
           <div className={clsx("kpi-value", savings >= 0 ? "text-brand-600" : "text-expense-700")}>{formatEur(savings, true)}</div>
-          <div className="kpi-delta">Stopnja {Math.round((savings / (income || 1)) * 100)} %</div>
+          <div className="kpi-delta">saldo obdobja</div>
         </div>
         <div className="kpi-card">
           <div className="kpi-label"><PieChart size={12} className="text-warn-700" />Proračun</div>
@@ -76,53 +77,61 @@ export default function Dashboard() {
         {/* Mesečni grafikon */}
         <div className="card">
           <div className="card-title">Prihodki in odhodki — 2026</div>
-          <ResponsiveContainer width="100%" height={140}>
-            <BarChart data={MONTHLY_DATA} barGap={2} barCategoryGap="30%">
-              <XAxis
-                dataKey="month"
-                tick={{ fontSize: 10, fill: "#888780" }}
-                axisLine={false}
-                tickLine={false}
-              />
-              <YAxis hide />
-              <Tooltip
-                formatter={(v: number) => formatEur(v)}
-                contentStyle={{
-                  fontSize: 12,
-                  border: "1px solid #D3D1C7",
-                  borderRadius: 8,
-                  boxShadow: "none",
-                }}
-              />
-              <Bar dataKey="income" name="Prihodki" radius={[3, 3, 0, 0]}>
-                {MONTHLY_DATA.map((d, i) => (
-                  <Cell key={i} fill={d.income === null ? "#B4B2A9" : "#1D9E75"} />
-                ))}
-              </Bar>
-              <Bar dataKey="expense" name="Odhodki" radius={[3, 3, 0, 0]}>
-                {MONTHLY_DATA.map((d, i) => (
-                  <Cell key={i} fill={d.expense === null ? "#D3D1C7" : "#D85A30"} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-          <div className="flex gap-4 mt-1">
-            <div className="flex items-center gap-1.5 text-xs text-neutral-500">
-              <div className="w-2.5 h-2.5 rounded-sm bg-income-500" />Prihodki
+          {MONTHLY_DATA.length > 0 ? (
+            <>
+              <ResponsiveContainer width="100%" height={140}>
+                <BarChart data={MONTHLY_DATA} barGap={2} barCategoryGap="30%">
+                  <XAxis
+                    dataKey="month"
+                    tick={{ fontSize: 10, fill: "#888780" }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <YAxis hide />
+                  <Tooltip
+                    formatter={(v: number) => formatEur(v)}
+                    contentStyle={{
+                      fontSize: 12,
+                      border: "1px solid #D3D1C7",
+                      borderRadius: 8,
+                      boxShadow: "none",
+                    }}
+                  />
+                  <Bar dataKey="income" name="Prihodki" radius={[3, 3, 0, 0]}>
+                    {MONTHLY_DATA.map((d, i) => (
+                      <Cell key={i} fill={d.income === null ? "#B4B2A9" : "#1D9E75"} />
+                    ))}
+                  </Bar>
+                  <Bar dataKey="expense" name="Odhodki" radius={[3, 3, 0, 0]}>
+                    {MONTHLY_DATA.map((d, i) => (
+                      <Cell key={i} fill={d.expense === null ? "#D3D1C7" : "#D85A30"} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+              <div className="flex gap-4 mt-1">
+                <div className="flex items-center gap-1.5 text-xs text-neutral-500">
+                  <div className="w-2.5 h-2.5 rounded-sm bg-income-500" />Prihodki
+                </div>
+                <div className="flex items-center gap-1.5 text-xs text-neutral-500">
+                  <div className="w-2.5 h-2.5 rounded-sm bg-expense-500" />Odhodki
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="h-[140px] flex items-center justify-center text-xs text-neutral-400">
+              Ni se podatkov za graf.
             </div>
-            <div className="flex items-center gap-1.5 text-xs text-neutral-500">
-              <div className="w-2.5 h-2.5 rounded-sm bg-expense-500" />Odhodki
-            </div>
-            <div className="flex items-center gap-1.5 text-xs text-neutral-500">
-              <div className="w-2.5 h-2.5 rounded-sm bg-neutral-300" />Napoved
-            </div>
-          </div>
+          )}
         </div>
 
         {/* Proračun */}
         <div className="card">
           <div className="card-title">Proračun po kategorijah</div>
           <div className="space-y-3">
+            {BUDGET.length === 0 && (
+              <p className="text-xs text-neutral-400 py-4">Ni se nastavljenega proračuna.</p>
+            )}
             {BUDGET.map((b) => {
               const cat = CATEGORIES.find((c) => c.code === b.categoryCode);
               const pct = Math.min(100, Math.round((b.currentSpend / b.monthlyLimit) * 100));
@@ -157,6 +166,9 @@ export default function Dashboard() {
             <button className="btn-ghost text-xs">Vse →</button>
           </div>
           <div>
+            {recent.length === 0 && (
+              <p className="text-xs text-neutral-400 py-4">Ni se transakcij.</p>
+            )}
             {recent.map((tx) => {
               const cat = getCategory(tx.categoryCode);
               return (
@@ -191,6 +203,9 @@ export default function Dashboard() {
         <div className="card">
           <div className="card-title">Prihajajoci dogodki</div>
           <div className="space-y-1">
+            {upcoming.length === 0 && (
+              <p className="text-xs text-neutral-400 py-4">Ni prihodnjih dogodkov.</p>
+            )}
             {upcoming.map((ev) => {
               const d = new Date(ev.date);
               const days = daysUntil(ev.date);

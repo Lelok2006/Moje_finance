@@ -1,10 +1,9 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { ExternalLink, ChevronRight, X } from "lucide-react";
+import { ChevronRight, X } from "lucide-react";
 import clsx from "clsx";
 
-// ── Točna struktura iz Financmajster CATS ─────────────────────
 const CATS = [
   {
     id: "placa", num: "01", title: "Dohodki in plača",
@@ -107,7 +106,7 @@ export default function Calculators() {
 
   // URL z hash za direktno navigacijo
   const iframeSrc = activeCalc
-    ? `/financmajster.html#${activeCalc}`
+    ? `/kalkulatorji.html#${activeCalc}`
     : null;
 
   return (
@@ -118,18 +117,9 @@ export default function Calculators() {
         <div>
           <h1 className="text-lg font-semibold text-neutral-900">Kalkulatorji</h1>
           <p className="text-xs text-neutral-400 mt-0.5">
-            32 orodij po slovenskem pravu · Finančni majster
+            Finančna orodja po slovenskem pravu
           </p>
         </div>
-        <a
-          href="https://financmajster.si"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="btn-secondary text-xs"
-        >
-          <ExternalLink size={12} />
-          financmajster.si
-        </a>
       </div>
 
       {/* Inline iframe prikaz kalkulatorja */}
@@ -162,7 +152,7 @@ export default function Calculators() {
               iframeReady ? "opacity-100" : "opacity-0 h-0"
             )}
             style={{ height: iframeReady ? "600px" : "0" }}
-            title="Financmajster kalkulator"
+            title="Moje finance kalkulator"
             onLoad={() => setIframeReady(true)}
           />
         </div>
@@ -243,7 +233,7 @@ export default function Calculators() {
       </div>
 
       <p className="text-[10px] text-neutral-300 text-center pb-2">
-        Kalkulatorji so del projekta Finančni majster · Zakonske vrednosti 2026 · ZDR-1, ZDoh-2, ZPIZ-2
+        Informativni izračuni · Zakonske vrednosti 2026 · ZDR-1, ZDoh-2, ZPIZ-2
       </p>
     </div>
   );

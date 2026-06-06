@@ -17,7 +17,7 @@ const NAV_ITEMS: {
 }[] = [
   { id: "dashboard",   label: "Nadzorna plošča", icon: <LayoutDashboard size={16} />, group: "Pregled" },
   { id: "finance",     label: "Finance",          icon: <Euro size={16} />,            group: "Moduli" },
-  { id: "documents",   label: "Dokumenti",        icon: <Files size={16} />,           group: "Moduli", badge: 1 },
+  { id: "documents",   label: "Dokumenti",        icon: <Files size={16} />,           group: "Moduli" },
   { id: "members",     label: "Člani",            icon: <Users size={16} />,           group: "Moduli" },
   { id: "calculators", label: "Kalkulatorji",     icon: <Calculator size={16} />,      group: "Moduli" },
   { id: "calendar",    label: "Koledar",          icon: <CalendarDays size={16} />,    group: "Moduli" },
@@ -82,11 +82,11 @@ function NavContent({ active, onNavigate }: NavContentProps) {
       {/* User */}
       <div className="px-3 py-3 border-t border-neutral-100 flex items-center gap-2.5">
         <div className="w-8 h-8 rounded-full bg-brand-50 flex items-center justify-center text-xs font-semibold text-brand-600 flex-shrink-0">
-          MN
+          MF
         </div>
         <div className="min-w-0">
-          <div className="text-xs font-medium text-neutral-800 truncate">Maja N.</div>
-          <div className="text-[10px] text-neutral-400">Skrbnik</div>
+          <div className="text-xs font-medium text-neutral-800 truncate">Moje finance</div>
+          <div className="text-[10px] text-neutral-400">Prijavljen uporabnik</div>
         </div>
       </div>
     </>

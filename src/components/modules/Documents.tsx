@@ -5,7 +5,7 @@ import {
   Upload, FileText, FileCheck, FileWarning, Check, X,
   Clock, Loader2, ChevronRight,
 } from "lucide-react";
-import { DOCUMENTS, CATEGORIES } from "@/lib/data";
+import { CATEGORIES } from "@/lib/data";
 import { formatDate, getCategory } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import AppSelect from "@/components/ui/AppSelect";
@@ -327,9 +327,6 @@ export default function Documents() {
   const [selectedDoc, setSelectedDoc] = useState<DocWithOcr | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Mock dokumenti z razširjenim tipom
-  const mockDocs: DocWithOcr[] = DOCUMENTS;
-
   async function handleFile(file: File) {
     setUploadState("uploading");
     setUploadError("");
@@ -362,8 +359,7 @@ export default function Documents() {
   async function confirmDoc(docId: string) {
     const supabase = createClient();
 
-    // Poišči dokument (OCR ali mock)
-    const doc = [...ocrDocs, ...mockDocs].find((d) => d.id === docId);
+    const doc = ocrDocs.find((d) => d.id === docId);
 
     const { data: existingTx } = await supabase
       .from("transactions")
@@ -439,11 +435,9 @@ export default function Documents() {
 
   const allOcrPending  = ocrDocs.filter((d) => d.status === "pending_confirm");
   const allOcrRest     = ocrDocs.filter((d) => d.status !== "pending_confirm");
-  const mockPending    = mockDocs.filter((d) => d.status === "pending_confirm");
-  const mockRest       = mockDocs.filter((d) => d.status !== "pending_confirm");
 
-  const pending = [...allOcrPending, ...mockPending];
-  const rest    = [...allOcrRest, ...mockRest];
+  const pending = allOcrPending;
+  const rest    = allOcrRest;
 
   function openDoc(doc: DocWithOcr) { setSelectedDoc(doc); }
   function isOcrDoc(id: string)     { return ocrDocs.some((d) => d.id === id); }
