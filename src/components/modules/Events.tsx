@@ -13,7 +13,17 @@ import type { CalendarEvent, EventType, Member, ReminderFrequency } from "@/type
 import clsx from "clsx";
 
 function todayIso() {
-  return new Date().toISOString().slice(0, 10);
+  const now = new Date();
+  return [
+    now.getFullYear(),
+    String(now.getMonth() + 1).padStart(2, "0"),
+    String(now.getDate()).padStart(2, "0"),
+  ].join("-");
+}
+
+function reminderTimes(pattern?: string) {
+  if (!pattern) return [];
+  return Array.from(pattern.matchAll(/\b([01]\d|2[0-3]):([0-5]\d)\b/g)).map((match) => match[0]);
 }
 
 function mapEvent(row: Record<string, unknown>): CalendarEvent {
@@ -101,13 +111,53 @@ export default function Events() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
+  useEffect(() => {
+    if (typeof window === "undefined" || !("Notification" in window)) return;
+
+    const checkMedicationReminders = () => {
+      if (Notification.permission !== "granted") return;
+      const now = new Date();
+      const today = todayIso();
+      const currentTime = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+
+      events
+        .filter((event) => event.type === "medication" && event.reminderEnabled)
+        .forEach((event) => {
+          if (event.date > today) return;
+          const times = reminderTimes(event.reminderPattern);
+          if (!times.includes(currentTime)) return;
+          const notificationKey = `medication-reminder:${event.id}:${today}:${currentTime}`;
+          if (localStorage.getItem(notificationKey)) return;
+          localStorage.setItem(notificationKey, "sent");
+          new Notification("Moje finance - opomnik za zdravilo", {
+            body: `${event.title}${event.description ? ` - ${event.description}` : ""}`,
+          });
+        });
+    };
+
+    checkMedicationReminders();
+    const interval = window.setInterval(checkMedicationReminders, 30_000);
+    return () => window.clearInterval(interval);
+  }, [events]);
+
   const sortedEvents = useMemo(
     () => [...events].sort((a, b) => a.date.localeCompare(b.date)),
     [events]
   );
 
-  const valid = form.title.trim().length > 0 && form.date.length > 0;
   const isMedication = form.type === "medication";
+  const valid = form.title.trim().length > 0
+    && form.date.length > 0
+    && (!isMedication || !form.reminderEnabled || form.reminderPattern.trim().length > 0);
+
+  function updateType(type: EventType) {
+    setForm((current) => ({
+      ...current,
+      type,
+      reminderEnabled: type === "medication" ? true : current.reminderEnabled,
+      reminderFrequency: type === "medication" ? "daily" : current.reminderFrequency,
+    }));
+  }
 
   function resetForm() {
     setForm({
@@ -147,6 +197,21 @@ export default function Events() {
     setSaving(true);
     setError("");
     setSuccess("");
+
+    if (isMedication && form.reminderEnabled && !form.reminderPattern.trim()) {
+      setSaving(false);
+      setError("Pri zdravilu vpiši ure opomnika, npr. 08:00, 16:00, 22:00.");
+      return;
+    }
+    if (isMedication && form.reminderEnabled && reminderTimes(form.reminderPattern).length === 0) {
+      setSaving(false);
+      setError("Ure opomnika morajo biti v obliki HH:MM, npr. 08:00, 16:00, 22:00.");
+      return;
+    }
+
+    if (isMedication && form.reminderEnabled && typeof window !== "undefined" && "Notification" in window && Notification.permission === "default") {
+      await Notification.requestPermission();
+    }
 
     const supabase = createClient();
     const { data: householdId, error: householdError } = await supabase.rpc("get_household_id");
@@ -257,7 +322,7 @@ export default function Events() {
                 value={form.type}
                 placeholder="Izberi tip"
                 options={eventTypeOptions}
-                onChange={(type) => setForm((current) => ({ ...current, type: type as EventType }))}
+                onChange={(type) => updateType(type as EventType)}
               />
             </div>
 
@@ -306,13 +371,13 @@ export default function Events() {
 
             <div>
               <label className="block text-[10px] text-neutral-500 mb-1">
-                {isMedication ? "Urnik jemanja / niz" : "Opis in opomba"}
+                {isMedication ? "Navodilo za jemanje" : "Opis in opomba"}
               </label>
               <textarea
                 className="input min-h-20 resize-none"
                 value={form.description}
                 onChange={(e) => setForm((current) => ({ ...current, description: e.target.value }))}
-                placeholder={isMedication ? "npr. 08:00 1 tableta; 20:00 1 tableta po hrani" : "Podrobnosti, lokacija, znesek ali opomba"}
+                placeholder={isMedication ? "npr. 1 tableta po hrani ali posebna navodila" : "Podrobnosti, lokacija, znesek ali opomba"}
               />
             </div>
 
@@ -320,7 +385,7 @@ export default function Events() {
               <label className="flex items-center justify-between gap-3">
                 <span className="flex items-center gap-2 text-xs font-medium text-neutral-700">
                   {form.reminderEnabled ? <Bell size={14} className="text-brand-600" /> : <BellOff size={14} className="text-neutral-400" />}
-                  Notification
+                  Obvestilo
                 </span>
                 <button
                   type="button"
@@ -346,12 +411,17 @@ export default function Events() {
                     onChange={(value) => setForm((current) => ({ ...current, reminderFrequency: value as ReminderFrequency }))}
                   />
                   {(form.reminderFrequency === "custom" || isMedication) && (
-                    <input
-                      className="input"
-                      value={form.reminderPattern}
-                      onChange={(e) => setForm((current) => ({ ...current, reminderPattern: e.target.value }))}
-                      placeholder="npr. 08:00,20:00 ali pon-pet 07:30"
-                    />
+                    <div>
+                      <label className="block text-[10px] text-neutral-500 mb-1">
+                        {isMedication ? "Ure opomnika *" : "Niz opomnika"}
+                      </label>
+                      <input
+                        className="input"
+                        value={form.reminderPattern}
+                        onChange={(e) => setForm((current) => ({ ...current, reminderPattern: e.target.value }))}
+                        placeholder={isMedication ? "npr. 08:00, 16:00, 22:00" : "npr. pon-pet 07:30"}
+                      />
+                    </div>
                   )}
                 </>
               )}
@@ -379,6 +449,8 @@ export default function Events() {
             {sortedEvents.map((event) => {
               const member = members.find((m) => m.id === event.memberId);
               const personLabel = member?.name ?? event.personName;
+              const reminderLabel = REMINDER_OPTIONS.find((option) => option.value === event.reminderFrequency)?.label ?? event.reminderFrequency;
+              const detailText = event.description ?? event.notes;
               return (
                 <div key={event.id} className="rounded-lg border border-neutral-100 p-3 hover:border-neutral-200 transition-colors">
                   <div className="flex items-start gap-3">
@@ -393,12 +465,17 @@ export default function Events() {
                       <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-neutral-400">
                         <span>{event.date}</span>
                         {personLabel && <span className="inline-flex items-center gap-1"><UserRound size={10} />{personLabel}</span>}
-                        {event.reminderEnabled && <span className="inline-flex items-center gap-1"><Bell size={10} />{event.reminderFrequency}</span>}
+                        {event.reminderEnabled && <span className="inline-flex items-center gap-1"><Bell size={10} />{reminderLabel}</span>}
                       </div>
                       {(event.description || event.notes || event.reminderPattern) && (
                         <div className="mt-2 text-[11px] text-neutral-500 leading-relaxed">
-                          {event.description ?? event.notes}
-                          {event.reminderPattern ? ` · ${event.reminderPattern}` : ""}
+                          {event.type === "medication" && event.reminderPattern && (
+                            <div className="font-medium text-emerald-700">Ure opomnika: {event.reminderPattern}</div>
+                          )}
+                          {detailText && <div>{detailText}</div>}
+                          {event.type !== "medication" && event.reminderPattern && event.reminderPattern !== detailText ? (
+                            <div>Opomnik: {event.reminderPattern}</div>
+                          ) : null}
                         </div>
                       )}
                     </div>

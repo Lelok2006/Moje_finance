@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useEffect } from "react";
+import { useCallback, useRef, useState, useEffect } from "react";
 import {
   Upload, FileText, FileCheck, FileWarning, Check, X,
   Clock, Loader2, ChevronRight,
@@ -55,6 +55,26 @@ const PAYMENT_LABEL: Record<string, string> = {
 
 type DocWithOcr = Document & { ocrRawText?: string };
 
+function mapDocument(row: Record<string, unknown>): DocWithOcr {
+  return {
+    id: String(row.id),
+    name: String(row.name),
+    uploadedAt: String(row.uploaded_at),
+    documentDate: row.document_date ? String(row.document_date) : undefined,
+    type: row.type as Document["type"],
+    status: row.status as Document["status"],
+    paymentStatus: (row.payment_status as PaymentStatus | null) ?? "unknown",
+    ocrAmount: row.ocr_amount != null ? Number(row.ocr_amount) : undefined,
+    ocrSuggestedCategory: row.ocr_suggested_category ? String(row.ocr_suggested_category) : undefined,
+    ocrRawText: row.ocr_raw_text ? String(row.ocr_raw_text) : undefined,
+    filePath: row.file_path ? String(row.file_path) : undefined,
+    linkedTransactionId: row.linked_transaction_id ? String(row.linked_transaction_id) : undefined,
+    expiryDate: row.expiry_date ? String(row.expiry_date) : undefined,
+    dueDate: row.due_date ? String(row.due_date) : undefined,
+    paidAt: row.paid_at ? String(row.paid_at) : undefined,
+  };
+}
+
 // ── Modalno okno ──────────────────────────────────────────────
 
 function DocumentModal({
@@ -79,6 +99,7 @@ function DocumentModal({
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>(doc.paymentStatus ?? "unknown");
   const [dueDate, setDueDate] = useState(doc.dueDate ?? "");
   const [paidAt, setPaidAt] = useState(doc.paidAt ?? "");
+  const [expiryDate, setExpiryDate] = useState(doc.expiryDate ?? "");
   const [saving, setSaving]     = useState(false);
   const [saved, setSaved]       = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -92,6 +113,7 @@ function DocumentModal({
     paymentStatus: doc.paymentStatus ?? "unknown",
     dueDate: doc.dueDate ?? "",
     paidAt: doc.paidAt ?? "",
+    expiryDate: doc.expiryDate ?? "",
   });
 
   // Pridobi podpisani URL za predogled datoteke
@@ -111,7 +133,8 @@ function DocumentModal({
     type !== base.type ||
     paymentStatus !== base.paymentStatus ||
     dueDate !== base.dueDate ||
-    paidAt !== base.paidAt;
+    paidAt !== base.paidAt ||
+    expiryDate !== base.expiryDate;
 
   async function handleSave() {
     setSaving(true);
@@ -124,9 +147,10 @@ function DocumentModal({
       paymentStatus,
       dueDate:              dueDate || undefined,
       paidAt:               paidAt || undefined,
+      expiryDate:           expiryDate || undefined,
     };
     await onSave(doc.id, updates);
-    setBase({ amount, date, category, type, paymentStatus, dueDate, paidAt }); // posodobi baseline → isDirty = false
+    setBase({ amount, date, category, type, paymentStatus, dueDate, paidAt, expiryDate }); // posodobi baseline → isDirty = false
     setSaving(false);
     setSaved(true);
   }
@@ -219,6 +243,14 @@ function DocumentModal({
                 <label className="block text-[10px] text-neutral-500 mb-1">Datum plačila</label>
                 <input type="date" value={paidAt} onChange={(e) => setPaidAt(e.target.value)} className="input" />
               </div>
+            </div>
+
+            <div>
+              <label className="block text-[10px] text-neutral-500 mb-1">Rok obnove / potek dokumenta</label>
+              <input type="date" value={expiryDate} onChange={(e) => setExpiryDate(e.target.value)} className="input" />
+              <p className="text-[10px] text-neutral-400 mt-1">
+                Uporabi za najemne, avtorske in druge pogodbe, zavarovanja, limite ali dokumente, ki jih je treba podaljšati.
+              </p>
             </div>
 
             {doc.ocrRawText && (
@@ -323,9 +355,33 @@ export default function Documents() {
   const [ocrDocs, setOcrDocs]       = useState<DocWithOcr[]>([]);
   const [uploadState, setUploadState] = useState<UploadState>("idle");
   const [uploadError, setUploadError] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
   const [isDragging, setIsDragging]  = useState(false);
   const [selectedDoc, setSelectedDoc] = useState<DocWithOcr | null>(null);
+  const [openingDocId, setOpeningDocId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const fetchDocuments = useCallback(async () => {
+    setLoading(true);
+    setLoadError("");
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from("documents")
+      .select("*")
+      .order("uploaded_at", { ascending: false });
+
+    if (error) {
+      setLoadError(error.message);
+      setLoading(false);
+      return;
+    }
+
+    setOcrDocs((data ?? []).map((row) => mapDocument(row)));
+    setLoading(false);
+  }, []);
+
+  useEffect(() => { fetchDocuments(); }, [fetchDocuments]);
 
   async function handleFile(file: File) {
     setUploadState("uploading");
@@ -399,6 +455,7 @@ export default function Documents() {
             .from("documents")
             .update({ linked_transaction_id: tx.id })
             .eq("id", docId);
+          setOcrDocs((prev) => prev.map((d) => d.id === docId ? { ...d, linkedTransactionId: tx.id } : d));
         }
       }
     }
@@ -410,7 +467,7 @@ export default function Documents() {
   async function rejectDoc(docId: string) {
     const supabase = createClient();
     await supabase.from("documents").update({ status: "archived" }).eq("id", docId);
-    setOcrDocs((prev) => prev.filter((d) => d.id !== docId));
+    setOcrDocs((prev) => prev.map((d) => d.id === docId ? { ...d, status: "archived" as const } : d));
     setSelectedDoc(null);
   }
 
@@ -426,6 +483,7 @@ export default function Documents() {
         payment_status:          updates.paymentStatus ?? "unknown",
         due_date:                updates.dueDate ?? null,
         paid_at:                 updates.paidAt ?? null,
+        expiry_date:             updates.expiryDate ?? null,
       }).eq("id", docId);
       setOcrDocs((prev) => prev.map((d) => d.id === docId ? { ...d, ...updates } : d));
     }
@@ -438,9 +496,43 @@ export default function Documents() {
 
   const pending = allOcrPending;
   const rest    = allOcrRest;
+  const renewalDocs = ocrDocs
+    .filter((doc) => doc.status !== "archived")
+    .filter((doc) => doc.expiryDate || (doc.paymentStatus === "pending" && doc.dueDate))
+    .sort((a, b) => (a.expiryDate ?? a.dueDate ?? "").localeCompare(b.expiryDate ?? b.dueDate ?? ""))
+    .slice(0, 6);
 
   function openDoc(doc: DocWithOcr) { setSelectedDoc(doc); }
   function isOcrDoc(id: string)     { return ocrDocs.some((d) => d.id === id); }
+
+  async function openStoredFile(doc: DocWithOcr) {
+    if (!doc.filePath) {
+      setLoadError("Datoteka za ta dokument ni shranjena.");
+      return;
+    }
+
+    const popup = window.open("", "_blank", "noopener,noreferrer");
+    setOpeningDocId(doc.id);
+    setLoadError("");
+
+    const supabase = createClient();
+    const { data, error } = await supabase.storage
+      .from("documents")
+      .createSignedUrl(doc.filePath, 600);
+
+    setOpeningDocId(null);
+    if (error || !data?.signedUrl) {
+      popup?.close();
+      setLoadError(error?.message ?? "Dokumenta ni mogoče odpreti.");
+      return;
+    }
+
+    if (popup) {
+      popup.location.href = data.signedUrl;
+    } else {
+      window.location.href = data.signedUrl;
+    }
+  }
 
   return (
     <div className="p-4 md:p-6 space-y-4">
@@ -506,8 +598,64 @@ export default function Documents() {
         </div>
       )}
 
+      {loadError && (
+        <div className="bg-expense-50 border border-expense-200 rounded-lg px-3 py-2">
+          <p className="text-xs text-expense-700">{loadError}</p>
+        </div>
+      )}
+
+      {loading && (
+        <div className="flex items-center justify-center gap-2 py-6 text-sm text-neutral-400">
+          <Loader2 size={16} className="animate-spin" />Nalagam dokumente...
+        </div>
+      )}
+
+      {!loading && renewalDocs.length > 0 && (
+        <div className="card border-warn-500/30 bg-warn-50/20">
+          <div className="card-title">
+            <span className="flex items-center gap-2">
+              <FileWarning size={14} className="text-warn-700" />
+              Roki, valute in obnove
+            </span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {renewalDocs.map((doc) => {
+              const date = doc.expiryDate ?? doc.dueDate;
+              const days = date ? daysUntilDate(date) : null;
+              return (
+                <button
+                  key={doc.id}
+                  className="bg-white rounded-lg border border-neutral-100 p-3 text-left hover:border-neutral-200 transition-colors"
+                  onClick={() => openDoc(doc)}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="text-xs font-medium text-neutral-800 truncate">{doc.name}</div>
+                      <div className="text-[10px] text-neutral-400 mt-0.5">
+                        {DOC_TYPE_LABEL[doc.type]} · {doc.expiryDate ? "obnova/potek" : "valuta plačila"}
+                      </div>
+                    </div>
+                    <span className={clsx(
+                      "pill text-[10px] flex-shrink-0",
+                      days != null && days < 14 ? "pill-red" : "pill-amber"
+                    )}>
+                      {date ? formatDate(date) : "brez datuma"}
+                    </span>
+                  </div>
+                  {days != null && (
+                    <div className="text-[10px] text-neutral-500 mt-2">
+                      {days > 0 ? `čez ${days} dni` : days === 0 ? "danes" : `zapadlo pred ${Math.abs(days)} dnevi`}
+                    </div>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Čaka potrditev */}
-      {pending.length > 0 && (
+      {!loading && pending.length > 0 && (
         <div className="card border-warn-500/30 bg-warn-50/20">
           <div className="card-title">
             <span className="flex items-center gap-2">
@@ -547,6 +695,17 @@ export default function Documents() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
+                    {doc.filePath && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); openStoredFile(doc); }}
+                        className="btn-secondary px-2 py-1.5"
+                        title="Odpri dokument"
+                        aria-label="Odpri dokument"
+                        disabled={openingDocId === doc.id}
+                      >
+                        {openingDocId === doc.id ? <Loader2 size={12} className="animate-spin" /> : <FileText size={12} />}
+                      </button>
+                    )}
                     <button
                       onClick={(e) => { e.stopPropagation(); confirmDoc(doc.id); }}
                       className="flex items-center gap-1 text-xs bg-income-500 text-white px-2.5 py-1.5 rounded-lg hover:bg-income-700 transition-colors"
@@ -585,9 +744,19 @@ export default function Documents() {
                   doc.expiryDate && daysUntilDoc(doc) < 60 ? "border-warn-500/40 bg-warn-50/20" : ""
                 )}
               >
-                <div className={clsx("w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0", docIconBg(doc.type))}>
-                  {docIcon(doc.type)}
-                </div>
+                <button
+                  className={clsx(
+                    "w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors",
+                    docIconBg(doc.type),
+                    doc.filePath ? "hover:ring-2 hover:ring-brand-200" : "opacity-60"
+                  )}
+                  onClick={(e) => { e.stopPropagation(); openStoredFile(doc); }}
+                  title={doc.filePath ? "Odpri dokument" : "Datoteka ni shranjena"}
+                  aria-label={doc.filePath ? "Odpri dokument" : "Datoteka ni shranjena"}
+                  disabled={openingDocId === doc.id}
+                >
+                  {openingDocId === doc.id ? <Loader2 size={16} className="animate-spin" /> : docIcon(doc.type)}
+                </button>
                 <div className="flex-1 min-w-0">
                   <div className="text-xs font-medium text-neutral-800 truncate">{doc.name}</div>
                   <div className="text-[10px] text-neutral-400">
@@ -632,6 +801,14 @@ export default function Documents() {
 function daysUntilDoc(doc: Document) {
   if (!doc.expiryDate) return 999;
   return Math.ceil((new Date(doc.expiryDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+}
+
+function daysUntilDate(iso: string) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const target = new Date(iso);
+  target.setHours(0, 0, 0, 0);
+  return Math.ceil((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
 }
 
 function docIconBg(type: string) {
