@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Bell, BellOff, Loader2, Plus, Pill, UserRound } from "lucide-react";
+import { Bell, BellOff, Check, Loader2, Pencil, Pill, Plus, Trash2, UserRound, X } from "lucide-react";
 import { EVENTS, MEMBERS } from "@/lib/data";
 import { createClient } from "@/lib/supabase/client";
 import {
@@ -51,6 +51,9 @@ export default function Events() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [formOpen, setFormOpen] = useState(true);
+  const [editing, setEditing] = useState<CalendarEvent | null>(null);
   const [form, setForm] = useState({
     title: "",
     date: todayIso(),
@@ -106,10 +109,44 @@ export default function Events() {
   const valid = form.title.trim().length > 0 && form.date.length > 0;
   const isMedication = form.type === "medication";
 
-  async function addEvent() {
+  function resetForm() {
+    setForm({
+      title: "",
+      date: todayIso(),
+      type: "doctor",
+      memberId: "",
+      personName: "",
+      description: "",
+      reminderEnabled: true,
+      reminderFrequency: "none",
+      reminderPattern: "",
+    });
+    setEditing(null);
+  }
+
+  function editEvent(event: CalendarEvent) {
+    setEditing(event);
+    setSuccess("");
+    setError("");
+    setForm({
+      title: event.title,
+      date: event.date,
+      type: event.type,
+      memberId: event.memberId ?? (event.personName ? "__other__" : ""),
+      personName: event.personName ?? "",
+      description: event.description ?? event.notes ?? "",
+      reminderEnabled: event.reminderEnabled ?? false,
+      reminderFrequency: event.reminderFrequency ?? "none",
+      reminderPattern: event.reminderPattern ?? "",
+    });
+    setFormOpen(true);
+  }
+
+  async function saveEvent() {
     if (!valid) return;
     setSaving(true);
     setError("");
+    setSuccess("");
 
     const supabase = createClient();
     const { data: householdId, error: householdError } = await supabase.rpc("get_household_id");
@@ -134,28 +171,44 @@ export default function Events() {
       source: isMedication ? "medication" : "manual",
     };
 
-    const { data: inserted, error: insertError } = await supabase
-      .from("events")
-      .insert(payload)
-      .select()
-      .single();
+    const query = editing
+      ? supabase.from("events").update(payload).eq("id", editing.id)
+      : supabase.from("events").insert(payload);
+
+    const { data: saved, error: saveError } = await query.select().single();
 
     setSaving(false);
-    if (insertError) {
-      setError(insertError.message);
+    if (saveError) {
+      setError(saveError.message);
       return;
     }
 
-    if (inserted) {
-      setEvents((current) => [mapEvent(inserted), ...current]);
+    if (saved) {
+      const nextEvent = mapEvent(saved);
+      setEvents((current) => editing
+        ? current.map((event) => event.id === nextEvent.id ? nextEvent : event)
+        : [nextEvent, ...current]
+      );
     }
-    setForm((current) => ({
-      ...current,
-      title: "",
-      description: "",
-      personName: "",
-      reminderPattern: isMedication ? current.reminderPattern : "",
-    }));
+    setSuccess(editing ? "Dogodek je posodobljen." : "Dogodek je dodan.");
+    resetForm();
+    setFormOpen(false);
+  }
+
+  async function deleteEvent(event: CalendarEvent) {
+    const confirmed = window.confirm("Izbrišem ta dogodek?");
+    if (!confirmed) return;
+    setError("");
+    setSuccess("");
+    const supabase = createClient();
+    const { error: deleteError } = await supabase.from("events").delete().eq("id", event.id);
+    if (deleteError) {
+      setError(deleteError.message);
+      return;
+    }
+    setEvents((current) => current.filter((item) => item.id !== event.id));
+    if (editing?.id === event.id) resetForm();
+    setSuccess("Dogodek je izbrisan.");
   }
 
   return (
@@ -165,11 +218,31 @@ export default function Events() {
           <h1 className="text-lg font-semibold text-neutral-900">Dogodki</h1>
           <p className="text-xs text-neutral-400 mt-0.5">Ročni dogodki, opomniki in urniki zdravil po osebi</p>
         </div>
+        {!formOpen && (
+          <button className="btn-primary" onClick={() => { resetForm(); setFormOpen(true); }}>
+            <Plus size={14} />Nov dogodek
+          </button>
+        )}
       </div>
 
+      {success && (
+        <div className="rounded-lg border border-income-200 bg-income-50 px-3 py-2 text-xs text-income-700 flex items-center gap-2">
+          <Check size={13} />{success}
+        </div>
+      )}
+
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 items-start">
-        <div className="card xl:col-span-1">
-          <div className="card-title">Nov dogodek</div>
+        {formOpen && <div className="card xl:col-span-1">
+          <div className="card-title">
+            <span>{editing ? "Uredi dogodek" : "Nov dogodek"}</span>
+            <button
+              className="btn-ghost"
+              onClick={() => { resetForm(); setFormOpen(false); }}
+              aria-label="Zapri obrazec"
+            >
+              <X size={14} />
+            </button>
+          </div>
 
           {error && (
             <div className="mb-3 rounded-lg border border-expense-200 bg-expense-50 px-3 py-2 text-xs text-expense-700">
@@ -287,15 +360,15 @@ export default function Events() {
             <button
               className="btn-primary w-full justify-center disabled:opacity-40"
               disabled={!valid || saving}
-              onClick={addEvent}
+              onClick={saveEvent}
             >
               {saving ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
-              Dodaj dogodek
+              {editing ? "Shrani dogodek" : "Dodaj dogodek"}
             </button>
           </div>
-        </div>
+        </div>}
 
-        <div className="card xl:col-span-2">
+        <div className={clsx("card", formOpen ? "xl:col-span-2" : "xl:col-span-3")}>
           <div className="card-title">Vpisani dogodki in opomniki</div>
           {loading && (
             <div className="flex items-center justify-center gap-2 py-8 text-sm text-neutral-400">
@@ -329,9 +402,17 @@ export default function Events() {
                         </div>
                       )}
                     </div>
-                    {event.type === "medication" && (
-                      <Pill size={15} className="mt-0.5 text-emerald-600 flex-shrink-0" />
-                    )}
+                    <div className="flex items-center gap-1">
+                      {event.type === "medication" && (
+                        <Pill size={15} className="text-emerald-600 flex-shrink-0" />
+                      )}
+                      <button className="btn-secondary px-2 py-1" onClick={() => editEvent(event)} title="Uredi">
+                        <Pencil size={12} />
+                      </button>
+                      <button className="btn-secondary px-2 py-1 text-expense-700 hover:bg-expense-50" onClick={() => deleteEvent(event)} title="Izbriši">
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
                   </div>
                 </div>
               );

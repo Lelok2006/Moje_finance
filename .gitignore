@@ -24,6 +24,7 @@ node_modules/
 .DS_Store
 *.pem
 Thumbs.db
+ZAPISNIK_LOKALNO.md
 
 # debug logs
 npm-debug.log*

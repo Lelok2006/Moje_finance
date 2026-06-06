@@ -60,6 +60,7 @@ export interface Database {
           ocr_suggested_category: string | null; ocr_raw_text: string | null;
           linked_transaction_id: string | null; expiry_date: string | null;
           file_hash: string | null; file_size: number | null; mime_type: string | null;
+          payment_status: string; due_date: string | null; paid_at: string | null;
         };
         Insert: Omit<Database["public"]["Tables"]["documents"]["Row"], "id" | "uploaded_at"> & { id?: string };
         Update: Partial<Database["public"]["Tables"]["documents"]["Insert"]>;
@@ -79,6 +80,7 @@ export interface Database {
     Functions: {
       get_household_id: { Args: Record<string, never>; Returns: string };
       setup_household: { Args: { p_household_name: string; p_member_name: string }; Returns: string };
+      reset_household_test_data: { Args: { p_reset_members?: boolean }; Returns: void };
     };
   };
 }

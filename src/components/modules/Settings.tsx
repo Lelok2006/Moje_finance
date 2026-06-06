@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Edit3, Plus, Check, X, Copy, Link } from "lucide-react";
+import { Edit3, Plus, Check, X, Copy, Link, Loader2, RotateCcw } from "lucide-react";
 import { CATEGORIES } from "@/lib/data";
 import { createClient } from "@/lib/supabase/client";
 import clsx from "clsx";
@@ -47,6 +47,9 @@ export default function Settings() {
   const [inviteLink, setInviteLink] = useState<string | null>(null);
   const [inviteLoading, setInviteLoading] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [resetLoading, setResetLoading] = useState(false);
+  const [resetMessage, setResetMessage] = useState("");
+  const [resetError, setResetError] = useState("");
 
   async function generateInvite() {
     setInviteLoading(true);
@@ -87,6 +90,29 @@ export default function Settings() {
 
   const toggle = (id: string) =>
     setToggles((prev) => ({ ...prev, [id]: !prev[id] }));
+
+  async function resetTestData() {
+    const confirmed = window.confirm(
+      "Izbrišem testne dogodke, dokumente, transakcije in proračun za to gospodinjstvo? Člani ostanejo."
+    );
+    if (!confirmed) return;
+
+    setResetLoading(true);
+    setResetMessage("");
+    setResetError("");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await (supabase as any).rpc("reset_household_test_data", {
+      p_reset_members: false,
+    });
+    setResetLoading(false);
+
+    if (error) {
+      setResetError(error.message);
+      return;
+    }
+
+    setResetMessage("Testni podatki gospodinjstva so pobrisani.");
+  }
 
   return (
     <div className="p-4 md:p-6 space-y-4">
@@ -260,6 +286,32 @@ export default function Settings() {
                 </button>
               </div>
             )}
+          </div>
+
+          {/* Verzija */}
+          <div className="card border-expense-200">
+            <div className="card-title text-expense-700">Testiranje</div>
+            <p className="text-xs text-neutral-500 mb-3">
+              Pobriše samo podatke trenutnega gospodinjstva: dogodke, dokumente, transakcije in proračun. Uporabnik, gospodinjstvo, člani in šifranti ostanejo.
+            </p>
+            {resetMessage && (
+              <p className="mb-2 rounded-lg border border-income-200 bg-income-50 px-3 py-2 text-xs text-income-700">
+                {resetMessage}
+              </p>
+            )}
+            {resetError && (
+              <p className="mb-2 rounded-lg border border-expense-200 bg-expense-50 px-3 py-2 text-xs text-expense-700">
+                {resetError}
+              </p>
+            )}
+            <button
+              onClick={resetTestData}
+              disabled={resetLoading}
+              className="btn-secondary w-full justify-center text-expense-700 hover:bg-expense-50 disabled:opacity-50"
+            >
+              {resetLoading ? <Loader2 size={13} className="animate-spin" /> : <RotateCcw size={13} />}
+              Testni reset mojega gospodinjstva
+            </button>
           </div>
 
           {/* Verzija */}

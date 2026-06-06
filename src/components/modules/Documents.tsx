@@ -9,7 +9,7 @@ import { DOCUMENTS, CATEGORIES } from "@/lib/data";
 import { formatDate, getCategory } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import AppSelect from "@/components/ui/AppSelect";
-import type { Document } from "@/types";
+import type { Document, PaymentStatus } from "@/types";
 import clsx from "clsx";
 
 // ── Konstante ─────────────────────────────────────────────────
@@ -38,6 +38,18 @@ const STATUS_LABEL: Record<string, string> = {
   booked:          "Vknjiženo",
   archived:        "Arhiv",
 };
+const PAYMENT_OPTIONS = [
+  { value: "unknown",  label: "Ni določeno" },
+  { value: "pending",  label: "Čaka plačilo" },
+  { value: "paid",     label: "Poravnano" },
+  { value: "canceled", label: "Preklicano / ne velja" },
+];
+const PAYMENT_LABEL: Record<string, string> = {
+  unknown:  "Plačilo ni določeno",
+  pending:  "Čaka plačilo",
+  paid:     "Poravnano",
+  canceled: "Preklicano",
+};
 
 // ── Razširjen tip z OCR besedilom ─────────────────────────────
 
@@ -64,12 +76,23 @@ function DocumentModal({
   const [date, setDate]         = useState(doc.documentDate ?? "");
   const [category, setCategory] = useState(doc.ocrSuggestedCategory ?? "");
   const [type, setType]         = useState(doc.type);
+  const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>(doc.paymentStatus ?? "unknown");
+  const [dueDate, setDueDate] = useState(doc.dueDate ?? "");
+  const [paidAt, setPaidAt] = useState(doc.paidAt ?? "");
   const [saving, setSaving]     = useState(false);
   const [saved, setSaved]       = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   // Baseline — posodablja se po vsakem shranjevanju za pravilen isDirty
-  const [base, setBase] = useState({ amount: doc.ocrAmount?.toString() ?? "", date: doc.documentDate ?? "", category: doc.ocrSuggestedCategory ?? "", type: doc.type });
+  const [base, setBase] = useState({
+    amount: doc.ocrAmount?.toString() ?? "",
+    date: doc.documentDate ?? "",
+    category: doc.ocrSuggestedCategory ?? "",
+    type: doc.type,
+    paymentStatus: doc.paymentStatus ?? "unknown",
+    dueDate: doc.dueDate ?? "",
+    paidAt: doc.paidAt ?? "",
+  });
 
   // Pridobi podpisani URL za predogled datoteke
   useEffect(() => {
@@ -81,7 +104,14 @@ function DocumentModal({
   }, [doc.filePath]);
 
   const isPending = doc.status === "pending_confirm";
-  const isDirty = amount !== base.amount || date !== base.date || category !== base.category || type !== base.type;
+  const isDirty =
+    amount !== base.amount ||
+    date !== base.date ||
+    category !== base.category ||
+    type !== base.type ||
+    paymentStatus !== base.paymentStatus ||
+    dueDate !== base.dueDate ||
+    paidAt !== base.paidAt;
 
   async function handleSave() {
     setSaving(true);
@@ -91,9 +121,12 @@ function DocumentModal({
       documentDate:         date || undefined,
       ocrSuggestedCategory: category || undefined,
       type:                 type as Document["type"],
+      paymentStatus,
+      dueDate:              dueDate || undefined,
+      paidAt:               paidAt || undefined,
     };
     await onSave(doc.id, updates);
-    setBase({ amount, date, category, type }); // posodobi baseline → isDirty = false
+    setBase({ amount, date, category, type, paymentStatus, dueDate, paidAt }); // posodobi baseline → isDirty = false
     setSaving(false);
     setSaved(true);
   }
@@ -115,6 +148,7 @@ function DocumentModal({
                 {STATUS_LABEL[doc.status]}
               </span>
               <span className="text-[10px] text-neutral-400">{DOC_TYPE_LABEL[doc.type]}</span>
+              <span className="text-[10px] text-neutral-400">{PAYMENT_LABEL[paymentStatus]}</span>
             </div>
           </div>
           <button onClick={onClose} className="p-1 rounded-lg hover:bg-neutral-100 transition-colors flex-shrink-0">
@@ -164,6 +198,27 @@ function DocumentModal({
                 }))}
                 onChange={setCategory}
               />
+            </div>
+
+            <div>
+              <label className="block text-[10px] text-neutral-500 mb-1">Status plačila</label>
+              <AppSelect
+                value={paymentStatus}
+                placeholder="Ni določeno"
+                options={PAYMENT_OPTIONS}
+                onChange={(value) => setPaymentStatus(value as PaymentStatus)}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[10px] text-neutral-500 mb-1">Valuta / zapadlost</label>
+                <input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} className="input" />
+              </div>
+              <div>
+                <label className="block text-[10px] text-neutral-500 mb-1">Datum plačila</label>
+                <input type="date" value={paidAt} onChange={(e) => setPaidAt(e.target.value)} className="input" />
+              </div>
             </div>
 
             {doc.ocrRawText && (
@@ -372,6 +427,9 @@ export default function Documents() {
         document_date:           updates.documentDate ?? null,
         ocr_suggested_category:  updates.ocrSuggestedCategory ?? null,
         type:                    updates.type,
+        payment_status:          updates.paymentStatus ?? "unknown",
+        due_date:                updates.dueDate ?? null,
+        paid_at:                 updates.paidAt ?? null,
       }).eq("id", docId);
       setOcrDocs((prev) => prev.map((d) => d.id === docId ? { ...d, ...updates } : d));
     }
@@ -480,12 +538,18 @@ export default function Documents() {
                           <strong className="text-neutral-800">{doc.ocrAmount} €</strong>
                         </span>
                       )}
-                      {doc.documentDate && (
-                        <span className="text-[10px] text-neutral-400">{formatDate(doc.documentDate)}</span>
-                      )}
-                      {cat && (
-                        <span className="text-[10px] text-neutral-400">{cat.name}</span>
-                      )}
+                    {doc.documentDate && (
+                      <span className="text-[10px] text-neutral-400">{formatDate(doc.documentDate)}</span>
+                    )}
+                    {doc.paymentStatus === "paid" && (
+                      <span className="text-[10px] text-income-700">Poravnano</span>
+                    )}
+                    {doc.paymentStatus === "pending" && (
+                      <span className="text-[10px] text-warn-700">Čaka plačilo</span>
+                    )}
+                    {cat && (
+                      <span className="text-[10px] text-neutral-400">{cat.name}</span>
+                    )}
                     </div>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
@@ -536,6 +600,8 @@ export default function Documents() {
                     {DOC_TYPE_LABEL[doc.type]}
                     {doc.ocrAmount != null ? ` · ${doc.ocrAmount} €` : ""}
                     {doc.documentDate ? ` · ${formatDate(doc.documentDate)}` : ""}
+                    {doc.paymentStatus === "paid" ? " · Poravnano" : ""}
+                    {doc.paymentStatus === "pending" ? " · Čaka plačilo" : ""}
                   </div>
                 </div>
                 <div className="flex flex-col items-end gap-1">

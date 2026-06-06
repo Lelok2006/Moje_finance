@@ -62,9 +62,12 @@ function mapMember(row: Record<string, unknown>): Member {
 
 function documentEvent(doc: Record<string, unknown>): CalendarEvent | null {
   const expiryDate = doc.expiry_date ? String(doc.expiry_date) : undefined;
+  const dueDateValue = doc.due_date ? String(doc.due_date) : undefined;
   const documentDate = doc.document_date ? String(doc.document_date) : undefined;
   const status = doc.status ? String(doc.status) : "";
-  const dueDate = expiryDate ?? (status === "pending_confirm" ? documentDate : undefined);
+  const paymentStatus = doc.payment_status ? String(doc.payment_status) : "unknown";
+  if (paymentStatus === "paid" || paymentStatus === "canceled" || status === "archived") return null;
+  const dueDate = expiryDate ?? dueDateValue ?? (status === "pending_confirm" ? documentDate : undefined);
   if (!dueDate) return null;
   return {
     id: `doc-${String(doc.id)}`,
@@ -272,8 +275,8 @@ export default function Calendar() {
       supabase.from("members").select("*").order("name", { ascending: true }),
       supabase
         .from("documents")
-        .select("id,name,status,document_date,expiry_date,ocr_amount")
-        .or("expiry_date.not.is.null,document_date.not.is.null"),
+        .select("id,name,status,document_date,expiry_date,due_date,ocr_amount,payment_status")
+        .or("expiry_date.not.is.null,due_date.not.is.null,document_date.not.is.null"),
     ]);
 
     if (eventsError || membersError || docsError) {

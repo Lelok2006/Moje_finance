@@ -39,6 +39,7 @@ export interface Transaction {
 
 // ── Dokument ──────────────────────────────────────────────────
 export type DocumentStatus = "pending_ocr" | "pending_confirm" | "booked" | "archived";
+export type PaymentStatus = "unknown" | "pending" | "paid" | "canceled";
 
 export interface Document {
   id: string;
@@ -47,12 +48,15 @@ export interface Document {
   documentDate?: string;
   type: "invoice" | "contract" | "policy" | "payslip" | "tax" | "other";
   status: DocumentStatus;
+  paymentStatus?: PaymentStatus;
   ocrAmount?: number;
   ocrSuggestedCategory?: string;
   ocrRawText?: string;
   filePath?: string;
   linkedTransactionId?: string;
   expiryDate?: string;
+  dueDate?: string;
+  paidAt?: string;
 }
 
 // ── Proračun ──────────────────────────────────────────────────

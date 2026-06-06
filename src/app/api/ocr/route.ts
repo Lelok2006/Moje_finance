@@ -16,6 +16,9 @@ type OcrResult = {
   doc_type: "invoice" | "contract" | "policy" | "payslip" | "tax" | "other";
   description: string;
   category_code: string | null;
+  payment_status: "unknown" | "pending" | "paid" | "canceled";
+  due_date: string | null;
+  paid_at: string | null;
   raw_text: string;
 };
 
@@ -134,6 +137,9 @@ export async function POST(req: NextRequest) {
     doc_type: "other",
     description: file.name,
     category_code: null,
+    payment_status: "unknown",
+    due_date: null,
+    paid_at: null,
     raw_text: "",
   };
 
@@ -161,6 +167,9 @@ Vrni JSON z naslednjimi polji:
   "doc_type": "invoice"|"contract"|"policy"|"payslip"|"tax"|"other",
   "description": kratek opis max 60 znakov (npr. "Mercator - živila", "A1 - internet"),
   "category_code": koda najustreznejše kategorije ali null,
+  "payment_status": "paid" če je razvidno da je že plačano/online plačano, "pending" če čaka plačilo, "canceled" če je stornirano, sicer "unknown",
+  "due_date": datum zapadlosti/valute "YYYY-MM-DD" ali null,
+  "paid_at": datum plačila "YYYY-MM-DD" ali null,
   "raw_text": ključno besedilo dokumenta max 300 znakov
 }`,
             },
@@ -185,6 +194,10 @@ Vrni JSON z naslednjimi polji:
   const docType = DOC_TYPES.includes(ocr.doc_type as (typeof DOC_TYPES)[number])
     ? ocr.doc_type
     : "other";
+  const PAYMENT_STATUSES = ["unknown", "pending", "paid", "canceled"] as const;
+  const paymentStatus = PAYMENT_STATUSES.includes(ocr.payment_status as (typeof PAYMENT_STATUSES)[number])
+    ? ocr.payment_status
+    : "unknown";
 
   const { data: doc, error: dbError } = await supabase
     .from("documents")
@@ -197,6 +210,9 @@ Vrni JSON z naslednjimi polji:
       file_hash: fileHash,
       file_size: file.size,
       mime_type: file.type,
+      payment_status: paymentStatus,
+      due_date: ocr.due_date ?? null,
+      paid_at: ocr.paid_at ?? null,
       ocr_amount: ocr.amount ?? null,
       ocr_suggested_category: ocr.category_code ?? null,
       ocr_raw_text: ocr.raw_text ?? null,
@@ -222,6 +238,9 @@ Vrni JSON z naslednjimi polji:
       ocrSuggestedCategory: doc.ocr_suggested_category,
       ocrRawText: doc.ocr_raw_text,
       filePath: doc.file_path,
+      paymentStatus: doc.payment_status,
+      dueDate: doc.due_date,
+      paidAt: doc.paid_at,
     },
   });
 }
