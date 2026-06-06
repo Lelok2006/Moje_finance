@@ -2058,6 +2058,25 @@ function openCalc(catId,calcId){
   setTimeout(()=>calc.init(),50);
 }
 
+function findCalc(calcId){
+  for(const cat of CATS){
+    if(cat.calcs.some(c=>c.id===calcId)) return { catId: cat.id, calcId };
+  }
+  return null;
+}
+
+function openCalcById(calcId){
+  const found=findCalc(calcId);
+  if(!found) return false;
+  openCalc(found.catId, found.calcId);
+  return true;
+}
+
+window.addEventListener('message', (event) => {
+  if(!event.data || event.data.type !== 'NAVIGATE' || !event.data.calcId) return;
+  openCalcById(event.data.calcId);
+});
+
 // ══════════════════════════════════════════════════════════════════
 // BUILD HOME
 // ══════════════════════════════════════════════════════════════════
@@ -2079,6 +2098,9 @@ document.getElementById('domain-grid').innerHTML = mainCats.map(buildCard).join(
 document.getElementById('sp-grid').innerHTML = buildCard(spCat);
 
 setBc([]);
+
+const initialCalcId = decodeURIComponent((window.location.hash || '').replace(/^#/, ''));
+if(initialCalcId) openCalcById(initialCalcId);
 </script>
 </body>
 </html>

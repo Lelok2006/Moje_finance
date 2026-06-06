@@ -151,7 +151,7 @@ export default function Calculators() {
               "w-full border-0 transition-opacity duration-200",
               iframeReady ? "opacity-100" : "opacity-0 h-0"
             )}
-            style={{ height: iframeReady ? "600px" : "0" }}
+            style={{ height: iframeReady ? "620px" : "0" }}
             title="Moje finance kalkulator"
             onLoad={() => setIframeReady(true)}
           />
