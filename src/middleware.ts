@@ -42,22 +42,6 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Če je uporabnik prijavljen ampak nima gospodinjstva → setup
-  // (samo za strani, ne za API klice)
-  if (user && !isPublic && !pathname.startsWith("/api/")) {
-    const { data: profile } = await supabase
-      .from("user_profiles")
-      .select("household_id")
-      .eq("id", user.id)
-      .single();
-
-    if (!profile) {
-      const url = request.nextUrl.clone();
-      url.pathname = "/setup";
-      return NextResponse.redirect(url);
-    }
-  }
-
   return supabaseResponse;
 }
 

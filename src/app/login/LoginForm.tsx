@@ -29,27 +29,29 @@ export default function LoginForm() {
     setLoading(true);
 
     if (mode === "register") {
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
           emailRedirectTo: `${window.location.origin}/auth/callback`,
         },
       });
-      if (error) setError(error.message);
-      else setSent(true);
+      if (error) {
+        setError(error.message);
+      } else if (data.session) {
+        // Email potrditev je izključena — seja je takoj aktivna
+        router.push("/");
+        router.refresh();
+      } else {
+        setSent(true);
+      }
 
     } else {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) {
         setError("Napačen e-naslov ali geslo.");
       } else {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data: profile } = await (supabase as any)
-          .from("user_profiles")
-          .select("household_id")
-          .maybeSingle();
-        router.push(profile ? "/" : "/setup");
+        router.push("/");
         router.refresh();
       }
     }
