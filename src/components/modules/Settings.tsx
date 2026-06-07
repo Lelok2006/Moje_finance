@@ -251,17 +251,17 @@ export default function Settings() {
                                   value={categoryDraft}
                                   onChange={(e) => setCategoryDraft(e.target.value)}
                                 />
-                                <button className="btn-ghost p-1" onClick={() => saveCategoryEdit(parent.code)} aria-label="Shrani">
+                                <button className="btn-ghost p-1.5" onClick={() => saveCategoryEdit(parent.code)} aria-label="Shrani">
                                   <Check size={12} />
                                 </button>
-                                <button className="btn-ghost p-1" onClick={() => setEditingCategory(null)} aria-label="Prekliči">
+                                <button className="btn-ghost p-1.5" onClick={() => setEditingCategory(null)} aria-label="Prekliči">
                                   <X size={12} />
                                 </button>
                               </>
                             ) : (
                               <>
                                 <span className="text-xs font-medium text-neutral-700 flex-1">{parent.name}</span>
-                                <button className="text-neutral-300 hover:text-neutral-500 p-0.5" onClick={() => startCategoryEdit(parent)}>
+                                <button className="text-neutral-300 hover:text-neutral-500 p-1.5" onClick={() => startCategoryEdit(parent)}>
                                   <Edit3 size={11} />
                                 </button>
                               </>
@@ -287,7 +287,7 @@ export default function Settings() {
                               ) : (
                                 <>
                                   <span className="text-xs text-neutral-500 flex-1">{child.name}</span>
-                                  <button className="text-neutral-200 hover:text-neutral-400 p-0.5" onClick={() => startCategoryEdit(child)}>
+                                  <button className="text-neutral-200 hover:text-neutral-400 p-1.5" onClick={() => startCategoryEdit(child)}>
                                     <Edit3 size={11} />
                                   </button>
                                 </>
@@ -484,7 +484,7 @@ export default function Settings() {
                       {plan.highlighted && <span className="pill pill-blue text-[10px]">priporočeno</span>}
                     </div>
                   </div>
-                  <div className="mt-2 flex flex-wrap gap-1">
+                  <div className="mt-2 flex flex-wrap gap-1.5">
                     {plan.features.map((feature) => (
                       <span key={feature} className="pill pill-gray text-[10px]">{feature}</span>
                     ))}

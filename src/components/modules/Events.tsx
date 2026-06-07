@@ -479,15 +479,15 @@ export default function Events() {
                         </div>
                       )}
                     </div>
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1.5">
                       {event.type === "medication" && (
                         <Pill size={15} className="text-emerald-600 flex-shrink-0" />
                       )}
-                      <button className="btn-secondary px-2 py-1" onClick={() => editEvent(event)} title="Uredi">
-                        <Pencil size={12} />
+                      <button className="btn-secondary p-2" onClick={() => editEvent(event)} title="Uredi">
+                        <Pencil size={13} />
                       </button>
-                      <button className="btn-secondary px-2 py-1 text-expense-700 hover:bg-expense-50" onClick={() => deleteEvent(event)} title="Izbriši">
-                        <Trash2 size={12} />
+                      <button className="btn-secondary p-2 text-expense-700 hover:bg-expense-50" onClick={() => deleteEvent(event)} title="Izbriši">
+                        <Trash2 size={13} />
                       </button>
                     </div>
                   </div>

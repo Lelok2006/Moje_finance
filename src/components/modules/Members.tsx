@@ -285,7 +285,7 @@ export default function Members() {
           <Loader2 size={16} className="animate-spin" />Nalagam člane...
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {members.map((member) => {
             const memberIncome  = transactions.filter((tx) => tx.memberId === member.id && tx.type === "income").reduce((sum, tx) => sum + tx.amount, 0);
             const memberExpense = transactions.filter((tx) => tx.memberId === member.id && tx.type === "expense").reduce((sum, tx) => sum + tx.amount, 0);
@@ -320,11 +320,11 @@ export default function Members() {
                   </div>
                 </div>
                 <div className="mt-3 flex justify-center gap-2">
-                  <button className="btn-secondary px-2 py-1" onClick={() => openEdit(member)}>
+                  <button className="btn-secondary" onClick={() => openEdit(member)}>
                     Uredi
                   </button>
                   {!member.isAdmin && (
-                    <button className="btn-secondary px-2 py-1 text-expense-700 hover:bg-expense-50" onClick={() => deleteMember(member)}>
+                    <button className="btn-secondary text-expense-700 hover:bg-expense-50" onClick={() => deleteMember(member)}>
                       Izbriši
                     </button>
                   )}

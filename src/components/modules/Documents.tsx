@@ -686,7 +686,7 @@ export default function Documents() {
                     </button>
                     <button
                       onClick={(e) => { e.stopPropagation(); rejectDoc(doc.id); }}
-                      className="flex items-center gap-1 text-xs btn-secondary py-1.5"
+                      className="flex items-center gap-1 text-xs btn-secondary px-2.5 py-1.5"
                     >
                       <X size={12} />Zavrni
                     </button>

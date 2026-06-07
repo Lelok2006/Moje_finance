@@ -551,7 +551,7 @@ export default function Finance() {
           </p>
         )}
 
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {budgetWithSpend.map((item) => {
             const pct = item.monthlyLimit > 0
               ? Math.min(100, Math.round((item.currentSpend / item.monthlyLimit) * 100))
@@ -710,7 +710,7 @@ export default function Finance() {
                             {tx.document?.filePath && (
                               <button
                                 onClick={() => openDocument(tx)}
-                                className="btn-secondary px-2 py-1"
+                                className="btn-secondary p-2"
                                 title="Odpri račun"
                               >
                                 <FileText size={13} />
@@ -718,7 +718,7 @@ export default function Finance() {
                             )}
                             <button
                               onClick={() => setEditingTx(tx)}
-                              className="btn-secondary px-2 py-1"
+                              className="btn-secondary p-2"
                               title="Popravi račun"
                             >
                               <Pencil size={13} />
@@ -754,11 +754,11 @@ export default function Finance() {
                     )}>
                       {tx.type === "income" ? "+" : "−"}{formatEur(tx.amount)}
                     </div>
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1.5">
                       {tx.document?.filePath && (
                         <button
                           onClick={() => openDocument(tx)}
-                          className="btn-secondary px-2 py-1"
+                          className="btn-secondary p-2"
                           title="Odpri račun"
                         >
                           <FileText size={13} />
@@ -766,7 +766,7 @@ export default function Finance() {
                       )}
                       <button
                         onClick={() => setEditingTx(tx)}
-                        className="btn-secondary px-2 py-1"
+                        className="btn-secondary p-2"
                         title="Popravi račun"
                       >
                         <Pencil size={13} />
