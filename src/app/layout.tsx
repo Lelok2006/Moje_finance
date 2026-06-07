@@ -19,7 +19,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="sl">
+    <html lang="sl" suppressHydrationWarning>
+      <head>
+        {/* Anti-flash: nastavi dark class pred hydracijo */}
+        <script dangerouslySetInnerHTML={{ __html: `try{if(localStorage.getItem('lifedesk-theme')==='dark')document.documentElement.classList.add('dark')}catch(e){}` }} />
+      </head>
       <body>{children}</body>
     </html>
   );
