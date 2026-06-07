@@ -12,7 +12,7 @@
   html { -webkit-tap-highlight-color: transparent; }
   body {
     @apply bg-neutral-50 text-neutral-900 antialiased
-           dark:bg-neutral-950 dark:text-neutral-100;
+           dark:bg-neutral-950 dark:text-neutral-50;
     font-family: 'Inter', system-ui, sans-serif;
   }
   * { @apply box-border; }
@@ -28,7 +28,7 @@
     @apply text-xs text-neutral-400 uppercase tracking-wide mb-1 flex items-center gap-1;
   }
   .kpi-value {
-    @apply text-2xl font-semibold text-neutral-900 dark:text-neutral-100;
+    @apply text-2xl font-semibold text-neutral-900 dark:text-neutral-50;
   }
   .kpi-delta {
     @apply text-xs text-neutral-400 mt-1;
@@ -41,7 +41,7 @@
   }
   .card-title {
     @apply text-sm font-medium text-neutral-800 mb-3 flex items-center justify-between
-           dark:text-neutral-200;
+           dark:text-neutral-100;
   }
 
   /* ── Gumbi ── */
@@ -52,7 +52,7 @@
   .btn-secondary {
     @apply bg-white border border-neutral-200 text-neutral-600 text-sm px-3 py-1.5 rounded-lg
            hover:bg-neutral-50 active:scale-95 transition-all flex items-center gap-1.5
-           dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-300
+           dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-100
            dark:hover:bg-neutral-700;
   }
   .btn-ghost {
@@ -144,3 +144,17 @@
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { @apply bg-neutral-200 rounded-full dark:bg-neutral-700; }
+
+/* ── Dark mode: globalni kontrast za inline barve v modulih ── */
+.dark .text-neutral-900 { @apply text-neutral-50; }
+.dark .text-neutral-800 { @apply text-neutral-100; }
+.dark .text-neutral-700 { @apply text-neutral-200; }
+.dark .text-neutral-600 { @apply text-neutral-300; }
+.dark .text-neutral-500 { @apply text-neutral-300; }
+
+.dark .text-income-700  { @apply text-income-500; }
+.dark .text-expense-700 { @apply text-expense-500; }
+.dark .text-warn-700    { @apply text-warn-500; }
+.dark .text-brand-700   { @apply text-brand-500; }
+.dark .text-brand-600   { @apply text-brand-500; }
+
