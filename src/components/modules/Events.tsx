@@ -381,7 +381,7 @@ export default function Events() {
               />
             </div>
 
-            <div className="rounded-lg border border-neutral-100 bg-neutral-50 p-3 space-y-3">
+            <div className="rounded-lg border border-neutral-100 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 p-3 space-y-3">
               <label className="flex items-center justify-between gap-3">
                 <span className="flex items-center gap-2 text-xs font-medium text-neutral-700">
                   {form.reminderEnabled ? <Bell size={14} className="text-brand-600" /> : <BellOff size={14} className="text-neutral-400" />}

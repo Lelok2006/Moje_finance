@@ -126,7 +126,7 @@ export default function Calculators() {
       {activeCalc && (
         <div className="card p-0 overflow-hidden">
           {/* Glava z zapiranjem */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-neutral-100 bg-neutral-50">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-neutral-100 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800">
             <div className="text-sm font-medium text-neutral-800">
               {CATS.flatMap((c) => c.calcs).find((c) => c.id === activeCalc)?.name}
             </div>
@@ -183,7 +183,7 @@ export default function Calculators() {
             </div>
 
             {/* Kalkulatorji v kategoriji */}
-            <div className="divide-y divide-neutral-50">
+            <div className="divide-y divide-neutral-50 dark:divide-neutral-800">
               {cat.calcs.map((calc) => (
                 <button
                   key={calc.id}
@@ -193,8 +193,8 @@ export default function Calculators() {
                   className={clsx(
                     "w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors",
                     activeCalc === calc.id
-                      ? "bg-brand-50"
-                      : "hover:bg-neutral-50"
+                      ? "bg-brand-50 dark:bg-neutral-700"
+                      : "hover:bg-neutral-50 dark:hover:bg-neutral-800"
                   )}
                 >
                   <span
