@@ -359,7 +359,6 @@ export default function Documents() {
   const [loadError, setLoadError] = useState("");
   const [isDragging, setIsDragging]  = useState(false);
   const [selectedDoc, setSelectedDoc] = useState<DocWithOcr | null>(null);
-  const [openingDocId, setOpeningDocId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchDocuments = useCallback(async () => {
@@ -504,35 +503,6 @@ export default function Documents() {
 
   function openDoc(doc: DocWithOcr) { setSelectedDoc(doc); }
   function isOcrDoc(id: string)     { return ocrDocs.some((d) => d.id === id); }
-
-  async function openStoredFile(doc: DocWithOcr) {
-    if (!doc.filePath) {
-      setLoadError("Datoteka za ta dokument ni shranjena.");
-      return;
-    }
-
-    const popup = window.open("", "_blank", "noopener,noreferrer");
-    setOpeningDocId(doc.id);
-    setLoadError("");
-
-    const supabase = createClient();
-    const { data, error } = await supabase.storage
-      .from("documents")
-      .createSignedUrl(doc.filePath, 600);
-
-    setOpeningDocId(null);
-    if (error || !data?.signedUrl) {
-      popup?.close();
-      setLoadError(error?.message ?? "Dokumenta ni mogoče odpreti.");
-      return;
-    }
-
-    if (popup) {
-      popup.location.href = data.signedUrl;
-    } else {
-      window.location.href = data.signedUrl;
-    }
-  }
 
   return (
     <div className="p-4 md:p-6 space-y-4">
@@ -696,15 +666,17 @@ export default function Documents() {
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
                     {doc.filePath && (
-                      <button
-                        onClick={(e) => { e.stopPropagation(); openStoredFile(doc); }}
+                      <a
+                        href={`/api/documents/open?id=${encodeURIComponent(doc.id)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
                         className="btn-secondary px-2 py-1.5"
                         title="Odpri dokument"
                         aria-label="Odpri dokument"
-                        disabled={openingDocId === doc.id}
                       >
-                        {openingDocId === doc.id ? <Loader2 size={12} className="animate-spin" /> : <FileText size={12} />}
-                      </button>
+                        <FileText size={12} />
+                      </a>
                     )}
                     <button
                       onClick={(e) => { e.stopPropagation(); confirmDoc(doc.id); }}
@@ -744,19 +716,33 @@ export default function Documents() {
                   doc.expiryDate && daysUntilDoc(doc) < 60 ? "border-warn-500/40 bg-warn-50/20" : ""
                 )}
               >
-                <button
-                  className={clsx(
-                    "w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors",
-                    docIconBg(doc.type),
-                    doc.filePath ? "hover:ring-2 hover:ring-brand-200" : "opacity-60"
-                  )}
-                  onClick={(e) => { e.stopPropagation(); openStoredFile(doc); }}
-                  title={doc.filePath ? "Odpri dokument" : "Datoteka ni shranjena"}
-                  aria-label={doc.filePath ? "Odpri dokument" : "Datoteka ni shranjena"}
-                  disabled={openingDocId === doc.id}
-                >
-                  {openingDocId === doc.id ? <Loader2 size={16} className="animate-spin" /> : docIcon(doc.type)}
-                </button>
+                {doc.filePath ? (
+                  <a
+                    href={`/api/documents/open?id=${encodeURIComponent(doc.id)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={clsx(
+                      "w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors",
+                      docIconBg(doc.type),
+                      "hover:ring-2 hover:ring-brand-200"
+                    )}
+                    onClick={(e) => e.stopPropagation()}
+                    title="Odpri dokument"
+                    aria-label="Odpri dokument"
+                  >
+                    {docIcon(doc.type)}
+                  </a>
+                ) : (
+                  <button
+                    className={clsx("w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 opacity-60", docIconBg(doc.type))}
+                    onClick={(e) => e.stopPropagation()}
+                    title="Datoteka ni shranjena"
+                    aria-label="Datoteka ni shranjena"
+                    disabled
+                  >
+                    {docIcon(doc.type)}
+                  </button>
+                )}
                 <div className="flex-1 min-w-0">
                   <div className="text-xs font-medium text-neutral-800 truncate">{doc.name}</div>
                   <div className="text-[10px] text-neutral-400">

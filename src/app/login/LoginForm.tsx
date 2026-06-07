@@ -95,6 +95,14 @@ export default function LoginForm() {
         </div>
 
         <div className="bg-white border border-neutral-100 rounded-2xl shadow-sm p-6">
+          <div className="mb-4 rounded-lg border border-brand-100 bg-brand-50/60 px-3 py-3">
+            <div className="text-xs font-semibold text-brand-700 mb-1">Kako testirati</div>
+            <p className="text-[11px] text-neutral-600 leading-relaxed">
+              Če še nimaš dostopa, izberi <strong>Registracija</strong>, vnesi svoj e-naslov in geslo,
+              potrdi e-mail, nato nastavi svoje gospodinjstvo. Če račun že obstaja, uporabi <strong>Vpis</strong>.
+            </p>
+          </div>
+
           <div className="flex gap-1 p-1 bg-neutral-50 rounded-xl mb-6">
             {(["login", "register"] as const).map((m) => (
               <button
