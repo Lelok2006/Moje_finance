@@ -74,7 +74,10 @@ export type EventType =
   | "medication"
   | "payment_due"
   | "obligation"
-  | "holiday"
+  | "vacation"
+  | "sick_leave"
+  | "school_holiday"
+  | "public_holiday"
   | "school"
   | "other";
 

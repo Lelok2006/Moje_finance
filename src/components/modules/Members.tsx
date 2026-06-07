@@ -5,7 +5,7 @@ import { Check, Loader2, UserPlus, X } from "lucide-react";
 import { EVENTS, MEMBERS, TRANSACTIONS } from "@/lib/data";
 import { createClient } from "@/lib/supabase/client";
 import { formatEur, daysUntil } from "@/lib/utils";
-import { EVENT_ICON, EVENT_LABEL, EVENT_PILL } from "@/lib/eventTypes";
+import { EVENT_CELL_BG, EVENT_ICON, EVENT_LABEL, EVENT_PILL } from "@/lib/eventTypes";
 import AppSelect from "@/components/ui/AppSelect";
 import type { CalendarEvent, EventType, Member, MemberType, ReminderFrequency, Transaction } from "@/types";
 import clsx from "clsx";
@@ -350,13 +350,7 @@ export default function Members() {
                     {d.toLocaleString("sl-SI", { month: "short" })}
                   </div>
                 </div>
-                <div className={clsx("w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 text-neutral-500",
-                  event.type === "payment_due" ? "bg-expense-50 text-expense-700" :
-                  event.type === "doctor" ? "bg-teal-50 text-teal-700" :
-                  event.type === "medication" ? "bg-emerald-50 text-emerald-700" :
-                  event.type === "birthday" ? "bg-purple-50 text-purple-700" :
-                  "bg-warn-50 text-warn-700"
-                )}>
+                <div className={clsx("w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 text-neutral-500", EVENT_CELL_BG[event.type])}>
                   {EVENT_ICON[event.type]}
                 </div>
                 <div className="flex-1 min-w-0">

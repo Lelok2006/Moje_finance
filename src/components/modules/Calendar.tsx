@@ -31,6 +31,13 @@ function primaryType(evs: CalendarEvent[]): EventType {
   return "other";
 }
 
+const DEFAULT_VISIBLE_TYPES = EVENT_TYPES.filter((type) =>
+  type !== "school_holiday" && type !== "public_holiday"
+);
+const OPTIONAL_CALENDAR_TYPES: EventType[] = ["school_holiday", "public_holiday"];
+const MAIN_CALENDAR_TYPES = EVENT_TYPES.filter((type) => !OPTIONAL_CALENDAR_TYPES.includes(type));
+const CALENDAR_LAYERS_STORAGE_KEY = "lifedesk-calendar-layers";
+
 function mapEvent(row: Record<string, unknown>): CalendarEvent {
   return {
     id: String(row.id),
@@ -260,6 +267,7 @@ export default function Calendar() {
   const [viewDate, setViewDate] = useState(new Date(today.getFullYear(), today.getMonth(), 1));
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
+  const [visibleTypes, setVisibleTypes] = useState<EventType[]>(DEFAULT_VISIBLE_TYPES);
 
   const year = viewDate.getFullYear();
   const month = viewDate.getMonth();
@@ -298,13 +306,42 @@ export default function Calendar() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const stored = window.localStorage.getItem(CALENDAR_LAYERS_STORAGE_KEY);
+    if (!stored) return;
+
+    try {
+      const parsed = JSON.parse(stored);
+      if (!Array.isArray(parsed)) return;
+      const next = parsed.filter((type): type is EventType => EVENT_TYPES.includes(type as EventType));
+      if (next.length > 0) setVisibleTypes(next);
+    } catch {
+      window.localStorage.removeItem(CALENDAR_LAYERS_STORAGE_KEY);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(CALENDAR_LAYERS_STORAGE_KEY, JSON.stringify(visibleTypes));
+  }, [visibleTypes]);
+
   function prevMonth() { setViewDate(new Date(year, month - 1, 1)); setSelectedDate(null); }
   function nextMonth() { setViewDate(new Date(year, month + 1, 1)); setSelectedDate(null); }
 
   function toDateStr(day: number) {
     return `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
   }
-  function eventsOn(day: number) { return events.filter((e) => e.date === toDateStr(day)); }
+  const visibleEvents = events.filter((event) => visibleTypes.includes(event.type));
+
+  function eventsOn(day: number) { return visibleEvents.filter((e) => e.date === toDateStr(day)); }
+
+  function toggleType(type: EventType) {
+    setVisibleTypes((current) => current.includes(type)
+      ? current.filter((item) => item !== type)
+      : [...current, type]
+    );
+  }
 
   async function addEvent(data: Omit<CalendarEvent, "id">) {
     const supabase = createClient();
@@ -344,16 +381,16 @@ export default function Calendar() {
     setShowModal(false);
   }
 
-  const selectedEvents = selectedDate ? events.filter((e) => e.date === selectedDate) : [];
+  const selectedEvents = selectedDate ? visibleEvents.filter((e) => e.date === selectedDate) : [];
 
   // Vsi prihodnji dogodki, urejeni po datumu
-  const upcoming = events
+  const upcoming = visibleEvents
     .map((e) => ({ ...e, days: daysUntil(e.date) }))
     .filter((e) => e.days >= 0)
     .sort((a, b) => a.date.localeCompare(b.date));
 
   // Dogodki tega meseca
-  const thisMonthEvents = events
+  const thisMonthEvents = visibleEvents
     .filter((e) => {
       const [y, m] = e.date.split("-").map(Number);
       return y === year && m === month + 1;
@@ -391,6 +428,57 @@ export default function Calendar() {
           <Loader2 size={16} className="animate-spin" />Nalagam koledar...
         </div>
       )}
+
+      <div className="card">
+        <div className="card-title">
+          <span>Plasti koledarja</span>
+          <span className="text-[11px] font-normal text-neutral-400">vklopi, kar uporabljaš</span>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {MAIN_CALENDAR_TYPES.map((type) => {
+            const active = visibleTypes.includes(type);
+            return (
+              <button
+                key={type}
+                type="button"
+                onClick={() => toggleType(type)}
+                className={clsx(
+                  "pill text-[11px] transition-all",
+                  active ? EVENT_PILL[type] : "pill-gray opacity-60"
+                )}
+              >
+                <span className={clsx("w-2 h-2 rounded-full", active ? EVENT_DOT[type] : "bg-neutral-300")} />
+                {EVENT_LABEL[type]}
+              </button>
+            );
+          })}
+        </div>
+        <div className="mt-4 rounded-lg border border-neutral-100 bg-neutral-50 p-3">
+          <div className="text-xs font-medium text-neutral-700 mb-2">Opcijsko</div>
+          <div className="flex flex-wrap gap-2">
+            {OPTIONAL_CALENDAR_TYPES.map((type) => {
+              const active = visibleTypes.includes(type);
+              return (
+                <button
+                  key={type}
+                  type="button"
+                  onClick={() => toggleType(type)}
+                  className={clsx(
+                    "pill text-[11px] transition-all",
+                    active ? EVENT_PILL[type] : "pill-gray opacity-70"
+                  )}
+                >
+                  <span className={clsx("w-2 h-2 rounded-full", active ? EVENT_DOT[type] : "bg-neutral-300")} />
+                  {active ? "Vklopljeno: " : "Vklopi: "}{EVENT_LABEL[type]}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+        <p className="text-[11px] text-neutral-400 mt-3">
+          Šolske počitnice in dela prosti dnevi niso privzeto prikazani. Vklopi jih tukaj, če jih želiš videti v koledarju.
+        </p>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
 
@@ -512,12 +600,7 @@ export default function Calendar() {
                       </div>
                       <div className={clsx(
                         "w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0",
-                        ev.type === "payment_due" ? "bg-expense-50 text-expense-700" :
-                        ev.type === "doctor"   ? "bg-teal-50 text-teal-700" :
-                        ev.type === "medication" ? "bg-emerald-50 text-emerald-700" :
-                        ev.type === "birthday" ? "bg-purple-50 text-purple-700" :
-                        ev.type === "school"   ? "bg-brand-50 text-brand-600" :
-                        "bg-warn-50 text-warn-700"
+                        EVENT_CELL_BG[ev.type]
                       )}>
                         {EVENT_ICON[ev.type]}
                       </div>

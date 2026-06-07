@@ -23,39 +23,71 @@ export default function LoginForm() {
     if (err) setError(decodeURIComponent(err));
   }, [searchParams]);
 
+  async function ensureHousehold() {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: profile, error: profileError } = await (supabase as any)
+      .from("user_profiles")
+      .select("household_id")
+      .maybeSingle();
+
+    if (profileError) throw profileError;
+    if (profile?.household_id) return;
+
+    const prefix = email.split("@")[0] || "gospodinjstvo";
+    const householdName = prefix.charAt(0).toUpperCase() + prefix.slice(1);
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error: setupError } = await (supabase as any).rpc("setup_household", {
+      p_household_name: householdName,
+      p_member_name: "Skrbnik",
+    });
+
+    if (setupError && !String(setupError.message).includes("že ima")) {
+      throw setupError;
+    }
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setLoading(true);
 
-    if (mode === "register") {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
-        },
-      });
-      if (error) {
-        setError(error.message);
-      } else if (data.session) {
-        // Email potrditev je izključena — seja je takoj aktivna
-        router.push("/");
-        router.refresh();
-      } else {
-        setSent(true);
-      }
+    try {
+      if (mode === "register") {
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            emailRedirectTo: `${window.location.origin}/auth/callback`,
+          },
+        });
+        if (error) {
+          setError(error.message);
+        } else if (data.session) {
+          // Email potrditev je izključena — seja je takoj aktivna
+          await ensureHousehold();
+          router.push("/");
+          router.refresh();
+        } else {
+          setSent(true);
+        }
 
-    } else {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) {
-        setError("Napačen e-naslov ali geslo.");
       } else {
-        router.push("/");
-        router.refresh();
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) {
+          setError("Napačen e-naslov ali geslo.");
+        } else {
+          await ensureHousehold();
+          router.push("/");
+          router.refresh();
+        }
       }
+    } catch (setupError) {
+      const message = setupError instanceof Error ? setupError.message : "Prijava ni uspela.";
+      setError(message);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }
 
   if (sent) {
@@ -65,11 +97,11 @@ export default function LoginForm() {
           <div className="w-14 h-14 bg-income-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
             <span className="text-2xl">📬</span>
           </div>
-          <h2 className="text-base font-semibold text-neutral-900 mb-2">Preveri svojo pošto</h2>
-          <p className="text-sm text-neutral-500 mb-1">Poslali smo potrditveni e-mail na</p>
+          <h2 className="text-base font-semibold text-neutral-900 mb-2">E-mail potrditev je še vklopljena</h2>
+          <p className="text-sm text-neutral-500 mb-1">Supabase je poslal potrditveni e-mail na</p>
           <p className="text-sm font-medium text-neutral-800 mb-4">{email}</p>
           <p className="text-xs text-neutral-400">
-            Klikni na povezavo v emailu in dostop bo odprt. Email morda prispe z zamudo 1–2 min.
+            Za testiranje brez potrditve izklopi Confirm email v Supabase Authentication nastavitvah.
           </p>
           <button
             onClick={() => { setSent(false); setMode("login"); }}
@@ -101,7 +133,8 @@ export default function LoginForm() {
             <div className="text-xs font-semibold text-brand-700 mb-1">Kako testirati</div>
             <p className="text-[11px] text-neutral-600 leading-relaxed">
               Če še nimaš dostopa, izberi <strong>Registracija</strong>, vnesi svoj e-naslov in geslo,
-              potrdi e-mail, nato nastavi svoje gospodinjstvo. Če račun že obstaja, uporabi <strong>Vpis</strong>.
+              nato te aplikacija samodejno prijavi in ustvari tvoje gospodinjstvo. Če račun že obstaja,
+              uporabi <strong>Vpis</strong>.
             </p>
           </div>
 
