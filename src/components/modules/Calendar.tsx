@@ -337,10 +337,34 @@ export default function Calendar() {
   function eventsOn(day: number) { return visibleEvents.filter((e) => e.date === toDateStr(day)); }
 
   function toggleType(type: EventType) {
+    const willShow = !visibleTypes.includes(type);
+
     setVisibleTypes((current) => current.includes(type)
       ? current.filter((item) => item !== type)
       : [...current, type]
     );
+
+    if (willShow && OPTIONAL_CALENDAR_TYPES.includes(type)) {
+      const matchingEvents = events
+        .filter((event) => event.type === type)
+        .sort((a, b) => {
+          const aPast = a.date < todayStr;
+          const bPast = b.date < todayStr;
+          if (aPast !== bPast) return aPast ? 1 : -1;
+          return a.date.localeCompare(b.date);
+        });
+      const target = matchingEvents[0];
+
+      if (target) {
+        const [targetYear, targetMonth] = target.date.split("-").map(Number);
+        setViewDate(new Date(targetYear, targetMonth - 1, 1));
+        setSelectedDate(target.date);
+      }
+    }
+  }
+
+  function typeCount(type: EventType) {
+    return events.filter((event) => event.type === type).length;
   }
 
   async function addEvent(data: Omit<CalendarEvent, "id">) {
@@ -458,6 +482,7 @@ export default function Calendar() {
           <div className="flex flex-wrap gap-2">
             {OPTIONAL_CALENDAR_TYPES.map((type) => {
               const active = visibleTypes.includes(type);
+              const count = typeCount(type);
               return (
                 <button
                   key={type}
@@ -469,7 +494,7 @@ export default function Calendar() {
                   )}
                 >
                   <span className={clsx("w-2 h-2 rounded-full", active ? EVENT_DOT[type] : "bg-neutral-300")} />
-                  {active ? "Vklopljeno: " : "Vklopi: "}{EVENT_LABEL[type]}
+                  {active ? "Vklopljeno: " : "Vklopi: "}{EVENT_LABEL[type]} ({count})
                 </button>
               );
             })}
@@ -477,6 +502,7 @@ export default function Calendar() {
         </div>
         <p className="text-[11px] text-neutral-400 mt-3">
           Šolske počitnice in dela prosti dnevi niso privzeto prikazani. Vklopi jih tukaj, če jih želiš videti v koledarju.
+          Če je ob oznaki številka 0, jih najprej dodaj v modulu Obveznosti.
         </p>
       </div>
 
