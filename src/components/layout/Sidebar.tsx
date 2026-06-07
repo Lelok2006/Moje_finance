@@ -1,10 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   LayoutDashboard, Euro, Files, Users,
   Calculator, Settings, Home, Menu, X, CalendarDays, BellRing,
+  ChevronDown, Check, KeyRound, LogOut, UserCircle,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 import type { ModuleId } from "@/types";
 import clsx from "clsx";
 
@@ -38,11 +41,61 @@ interface NavContentProps {
 }
 
 function NavContent({ active, onNavigate }: NavContentProps) {
+  const router = useRouter();
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [email, setEmail] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [profileError, setProfileError] = useState("");
+  const [profileMessage, setProfileMessage] = useState("");
+  const [savingPassword, setSavingPassword] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data }) => {
+      setEmail(data.user?.email ?? "");
+    });
+  }, []);
+
+  async function changePassword() {
+    if (newPassword.length < 8) {
+      setProfileError("Geslo mora imeti vsaj 8 znakov.");
+      return;
+    }
+
+    setSavingPassword(true);
+    setProfileError("");
+    setProfileMessage("");
+    const supabase = createClient();
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    setSavingPassword(false);
+
+    if (error) {
+      setProfileError(error.message);
+      return;
+    }
+
+    setNewPassword("");
+    setProfileMessage("Geslo je posodobljeno.");
+  }
+
+  async function signOut() {
+    setSigningOut(true);
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/login");
+    router.refresh();
+  }
+
   return (
     <>
       {/* Logo */}
       <div className="px-4 py-4 border-b border-neutral-100">
-        <div className="flex items-center gap-2.5">
+        <button
+          className="flex items-center gap-2.5 w-full text-left"
+          onClick={() => onNavigate("dashboard")}
+          aria-label="Nazaj na domov"
+        >
           <div className="w-8 h-8 bg-brand-600 rounded-lg flex items-center justify-center">
             <Home size={16} className="text-white" />
           </div>
@@ -50,7 +103,13 @@ function NavContent({ active, onNavigate }: NavContentProps) {
             <div className="text-sm font-semibold text-neutral-900">Moje finance</div>
             <div className="text-[10px] text-neutral-400">Gospodinjski ERP</div>
           </div>
-        </div>
+        </button>
+        <button
+          className="mt-2 text-[10px] text-brand-600 hover:text-brand-700 font-medium"
+          onClick={() => onNavigate("dashboard")}
+        >
+          Domov / nadzorna plošča
+        </button>
       </div>
 
       {/* Nav */}
@@ -80,14 +139,78 @@ function NavContent({ active, onNavigate }: NavContentProps) {
       </nav>
 
       {/* User */}
-      <div className="px-3 py-3 border-t border-neutral-100 flex items-center gap-2.5">
-        <div className="w-8 h-8 rounded-full bg-brand-50 flex items-center justify-center text-xs font-semibold text-brand-600 flex-shrink-0">
-          MF
-        </div>
-        <div className="min-w-0">
-          <div className="text-xs font-medium text-neutral-800 truncate">Moje finance</div>
-          <div className="text-[10px] text-neutral-400">Prijavljen uporabnik</div>
-        </div>
+      <div className="relative border-t border-neutral-100">
+        {profileOpen && (
+          <div className="absolute left-3 right-3 bottom-full mb-2 rounded-xl border border-neutral-100 bg-white shadow-lg p-3 z-20">
+            <div className="flex items-start gap-2.5 pb-3 border-b border-neutral-100">
+              <div className="w-8 h-8 rounded-full bg-brand-50 flex items-center justify-center text-brand-600 flex-shrink-0">
+                <UserCircle size={16} />
+              </div>
+              <div className="min-w-0">
+                <div className="text-xs font-semibold text-neutral-900">Profil uporabnika</div>
+                <div className="text-[10px] text-neutral-400 truncate">{email || "Prijavljen uporabnik"}</div>
+              </div>
+            </div>
+
+            <button
+              className="btn-ghost text-xs w-full justify-start mt-3"
+              onClick={() => { onNavigate("settings"); setProfileOpen(false); }}
+            >
+              <Settings size={13} />Nastavitve
+            </button>
+
+            <div className="mt-3 space-y-2">
+              <label className="block text-[10px] text-neutral-500">Novo geslo</label>
+              <input
+                type="password"
+                className="input h-9 text-xs"
+                value={newPassword}
+                onChange={(event) => setNewPassword(event.target.value)}
+                placeholder="najmanj 8 znakov"
+              />
+              <button
+                className="btn-secondary text-xs w-full justify-center"
+                onClick={changePassword}
+                disabled={savingPassword}
+              >
+                {savingPassword ? "Shranjujem..." : <><KeyRound size={13} />Spremeni geslo</>}
+              </button>
+            </div>
+
+            {profileMessage && (
+              <p className="mt-2 rounded-lg border border-income-200 bg-income-50 px-2 py-1.5 text-[10px] text-income-700 flex items-center gap-1.5">
+                <Check size={11} />{profileMessage}
+              </p>
+            )}
+            {profileError && (
+              <p className="mt-2 rounded-lg border border-expense-200 bg-expense-50 px-2 py-1.5 text-[10px] text-expense-700">
+                {profileError}
+              </p>
+            )}
+
+            <button
+              className="btn-secondary text-xs w-full justify-center text-expense-700 hover:bg-expense-50 mt-3"
+              onClick={signOut}
+              disabled={signingOut}
+            >
+              <LogOut size={13} />{signingOut ? "Odjavljam..." : "Odjava"}
+            </button>
+          </div>
+        )}
+
+        <button
+          className="w-full px-3 py-3 flex items-center gap-2.5 hover:bg-neutral-50 transition-colors text-left"
+          onClick={() => { setProfileOpen((open) => !open); setProfileError(""); setProfileMessage(""); }}
+        >
+          <div className="w-8 h-8 rounded-full bg-brand-50 flex items-center justify-center text-xs font-semibold text-brand-600 flex-shrink-0">
+            {(email || "MF").slice(0, 1).toUpperCase()}
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="text-xs font-medium text-neutral-800 truncate">{email || "Moje finance"}</div>
+            <div className="text-[10px] text-neutral-400">Profil in odjava</div>
+          </div>
+          <ChevronDown size={14} className={clsx("text-neutral-300 transition-transform", profileOpen && "rotate-180")} />
+        </button>
       </div>
     </>
   );
@@ -110,12 +233,12 @@ export default function Sidebar({ active, onChange }: SidebarProps) {
 
       {/* Mobile top bar */}
       <div className="md:hidden fixed top-0 left-0 right-0 z-40 bg-white border-b border-neutral-100 flex items-center justify-between px-4 h-14">
-        <div className="flex items-center gap-2">
+        <button className="flex items-center gap-2" onClick={() => handleNav("dashboard")}>
           <div className="w-7 h-7 bg-brand-600 rounded-lg flex items-center justify-center">
             <Home size={14} className="text-white" />
           </div>
           <span className="text-sm font-semibold text-neutral-900">Moje finance</span>
-        </div>
+        </button>
         <button
           onClick={() => setMobileOpen(true)}
           className="p-2 rounded-lg hover:bg-neutral-100"
@@ -142,12 +265,12 @@ export default function Sidebar({ active, onChange }: SidebarProps) {
         )}
       >
         <div className="flex items-center justify-between px-4 h-14 border-b border-neutral-100">
-          <div className="flex items-center gap-2">
+          <button className="flex items-center gap-2" onClick={() => handleNav("dashboard")}>
             <div className="w-7 h-7 bg-brand-600 rounded-lg flex items-center justify-center">
               <Home size={14} className="text-white" />
             </div>
             <span className="text-sm font-semibold text-neutral-900">Moje finance</span>
-          </div>
+          </button>
           <button onClick={() => setMobileOpen(false)} className="p-1.5 rounded-lg hover:bg-neutral-100">
             <X size={18} className="text-neutral-500" />
           </button>
