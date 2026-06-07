@@ -129,7 +129,7 @@ export default function Events() {
           const notificationKey = `medication-reminder:${event.id}:${today}:${currentTime}`;
           if (localStorage.getItem(notificationKey)) return;
           localStorage.setItem(notificationKey, "sent");
-          new Notification("Moje finance - opomnik za zdravilo", {
+          new Notification("LifeDesk - opomnik za zdravilo", {
             body: `${event.title}${event.description ? ` - ${event.description}` : ""}`,
           });
         });

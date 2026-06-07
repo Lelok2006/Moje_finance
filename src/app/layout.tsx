@@ -2,8 +2,8 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Moje finance",
-  description: "Gospodinjski ERP — upravljanje družinskih financ",
+  title: "LifeDesk",
+  description: "Roki, dokumenti, opomniki in stroški za gospodinjstvo",
 };
 
 export const viewport: Viewport = {

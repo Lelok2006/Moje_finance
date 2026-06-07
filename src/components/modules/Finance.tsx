@@ -4,13 +4,13 @@ import { useEffect, useState, useCallback } from "react";
 import {
   Plus, TrendingUp, TrendingDown,
   ChevronLeft, ChevronRight, X, Check, Loader2,
-  FileText, Pencil, Trash2,
+  FileText, Pencil, Trash2, Target,
 } from "lucide-react";
 import { CATEGORIES } from "@/lib/data";
-import { formatEur, formatDate, getCategory } from "@/lib/utils";
+import { budgetColor, formatEur, formatDate, getCategory } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import AppSelect from "@/components/ui/AppSelect";
-import type { Transaction, Member } from "@/types";
+import type { Transaction, Member, BudgetItem } from "@/types";
 import clsx from "clsx";
 
 type FinanceTransaction = Transaction & {
@@ -28,6 +28,18 @@ function monthLabel(year: number, month: number) {
 }
 function toIso(date: Date) {
   return date.toISOString().slice(0, 10);
+}
+function parseEuroInput(value: string) {
+  const normalized = value.trim().replace(",", ".");
+  if (!normalized) return 0;
+  const amount = Number(normalized);
+  return Number.isFinite(amount) ? amount : NaN;
+}
+function categoryCodesForBudget(categoryCode: string) {
+  const childCodes = CATEGORIES
+    .filter((category) => category.parentCode === categoryCode)
+    .map((category) => category.code);
+  return [categoryCode, ...childCodes];
 }
 
 // ── Forma za novo transakcijo ─────────────────────────────────
@@ -285,6 +297,10 @@ export default function Finance() {
   const [filter, setFilter] = useState<"vse" | "prihodki" | "odhodki">("vse");
   const [transactions, setTransactions] = useState<FinanceTransaction[]>([]);
   const [members, setMembers]           = useState<Member[]>([]);
+  const [budgetItems, setBudgetItems]   = useState<BudgetItem[]>([]);
+  const [budgetDrafts, setBudgetDrafts] = useState<Record<string, string>>({});
+  const [budgetSavingCode, setBudgetSavingCode] = useState<string | null>(null);
+  const [budgetError, setBudgetError]   = useState("");
   const [loading, setLoading]           = useState(true);
   const [showForm, setShowForm]         = useState(false);
   const [editingTx, setEditingTx]       = useState<FinanceTransaction | null>(null);
@@ -297,7 +313,7 @@ export default function Finance() {
     const lastDay = new Date(year, month, 0).getDate();
     const to   = `${year}-${String(month).padStart(2, "0")}-${lastDay}`;
 
-    const [{ data: txs }, { data: mems }] = await Promise.all([
+    const [{ data: txs }, { data: mems }, { data: budgets }] = await Promise.all([
       supabase
         .from("transactions")
         .select("*, documents:document_id(id,name,file_path)")
@@ -305,6 +321,7 @@ export default function Finance() {
         .lte("date", to)
         .order("date", { ascending: false }),
       supabase.from("members").select("*").order("name"),
+      supabase.from("budget_items").select("*").order("category_code"),
     ]);
 
     if (txs) {
@@ -335,6 +352,18 @@ export default function Finance() {
         isAdmin:  m.is_admin ?? false,
       })));
     }
+    if (budgets) {
+      const mapped = budgets.map((item) => ({
+        categoryCode: item.category_code,
+        monthlyLimit: Number(item.monthly_limit),
+        currentSpend: 0,
+      }));
+      setBudgetItems(mapped);
+      setBudgetDrafts(Object.fromEntries(mapped.map((item) => [
+        item.categoryCode,
+        item.monthlyLimit.toString(),
+      ])));
+    }
     setLoading(false);
   }, [year, month]);
 
@@ -354,6 +383,23 @@ export default function Finance() {
   const income  = transactions.filter((t) => t.type === "income").reduce((s, t) => s + t.amount, 0);
   const expense = transactions.filter((t) => t.type === "expense").reduce((s, t) => s + t.amount, 0);
   const balance = income - expense;
+  const budgetCategories = CATEGORIES.filter((category) =>
+    !category.parentCode && (category.type === "fixed" || category.type === "variable" || category.type === "savings")
+  );
+  const budgetWithSpend = budgetCategories.map((category) => {
+    const codes = categoryCodesForBudget(category.code);
+    const currentSpend = transactions
+      .filter((transaction) => transaction.type === "expense" && codes.includes(transaction.categoryCode))
+      .reduce((sum, transaction) => sum + transaction.amount, 0);
+    const saved = budgetItems.find((item) => item.categoryCode === category.code);
+
+    return {
+      category,
+      currentSpend,
+      monthlyLimit: saved?.monthlyLimit ?? 0,
+      draft: budgetDrafts[category.code] ?? "",
+    };
+  });
 
   const memberName = (id?: string) => members.find((m) => m.id === id)?.name ?? "Skupno";
 
@@ -374,14 +420,87 @@ export default function Finance() {
     window.open(data.signedUrl, "_blank", "noopener,noreferrer");
   }
 
+  async function saveBudgetLimit(categoryCode: string) {
+    const amount = parseEuroInput(budgetDrafts[categoryCode] ?? "");
+
+    if (Number.isNaN(amount) || amount < 0) {
+      setBudgetError("Vnesi veljaven znesek limita.");
+      return;
+    }
+
+    setBudgetSavingCode(categoryCode);
+    setBudgetError("");
+    const existing = budgetItems.find((item) => item.categoryCode === categoryCode);
+
+    if (amount <= 0) {
+      if (existing) {
+        const { error } = await supabase
+          .from("budget_items")
+          .delete()
+          .eq("category_code", categoryCode);
+
+        if (error) {
+          setBudgetSavingCode(null);
+          setBudgetError(error.message);
+          return;
+        }
+      }
+
+      setBudgetItems((items) => items.filter((item) => item.categoryCode !== categoryCode));
+      setBudgetDrafts((drafts) => ({ ...drafts, [categoryCode]: "" }));
+      setBudgetSavingCode(null);
+      return;
+    }
+
+    if (existing) {
+      const { error } = await supabase
+        .from("budget_items")
+        .update({ monthly_limit: amount })
+        .eq("category_code", categoryCode);
+
+      if (error) {
+        setBudgetSavingCode(null);
+        setBudgetError(error.message);
+        return;
+      }
+    } else {
+      const { data: householdId, error: householdError } = await supabase.rpc("get_household_id");
+      if (householdError || !householdId) {
+        setBudgetSavingCode(null);
+        setBudgetError(householdError?.message ?? "Gospodinjstva ni bilo mogoče prebrati.");
+        return;
+      }
+
+      const { error } = await supabase.from("budget_items").insert({
+        household_id: householdId,
+        category_code: categoryCode,
+        monthly_limit: amount,
+      });
+
+      if (error) {
+        setBudgetSavingCode(null);
+        setBudgetError(error.message);
+        return;
+      }
+    }
+
+    setBudgetItems((items) => {
+      const next = items.filter((item) => item.categoryCode !== categoryCode);
+      next.push({ categoryCode, monthlyLimit: amount, currentSpend: 0 });
+      return next.sort((a, b) => a.categoryCode.localeCompare(b.categoryCode));
+    });
+    setBudgetDrafts((drafts) => ({ ...drafts, [categoryCode]: amount.toString() }));
+    setBudgetSavingCode(null);
+  }
+
   return (
     <div className="p-4 md:p-6 space-y-4">
 
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-lg font-semibold text-neutral-900">Finance</h1>
-          <p className="text-xs text-neutral-400 mt-0.5">Prihodki, odhodki in proračun</p>
+          <h1 className="text-lg font-semibold text-neutral-900">Stroški</h1>
+          <p className="text-xs text-neutral-400 mt-0.5">Stroški, prihodki in limiti po življenjskih kategorijah</p>
         </div>
         <button className="btn-primary" onClick={() => setShowForm(true)}>
           <Plus size={14} />Novi vnos
@@ -408,7 +527,7 @@ export default function Finance() {
           <div className="kpi-value text-income-700 text-xl">{formatEur(income)}</div>
         </div>
         <div className="kpi-card">
-          <div className="kpi-label"><TrendingDown size={12} className="text-expense-700" />Odhodki</div>
+          <div className="kpi-label"><TrendingDown size={12} className="text-expense-700" />Stroški</div>
           <div className="kpi-value text-expense-700 text-xl">{formatEur(expense)}</div>
         </div>
         <div className="kpi-card">
@@ -417,6 +536,89 @@ export default function Finance() {
             {formatEur(balance, true)}
           </div>
         </div>
+      </div>
+
+      {/* Proračun */}
+      <div className="card">
+        <div className="card-title">
+          <span className="flex items-center gap-2"><Target size={15} />Mesečni limiti po kategorijah</span>
+          <span className="text-[11px] font-normal text-neutral-400">mesečni limit</span>
+        </div>
+
+        {budgetError && (
+          <p className="mb-3 text-xs text-expense-700 bg-expense-50 border border-expense-200 rounded-lg px-3 py-2">
+            {budgetError}
+          </p>
+        )}
+
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          {budgetWithSpend.map((item) => {
+            const pct = item.monthlyLimit > 0
+              ? Math.min(100, Math.round((item.currentSpend / item.monthlyLimit) * 100))
+              : 0;
+            const isSaving = budgetSavingCode === item.category.code;
+
+            return (
+              <div key={item.category.code} className="border border-neutral-100 rounded-lg p-3 space-y-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="sif-code">{item.category.code}</span>
+                      <span className="text-sm font-medium text-neutral-800">{item.category.name}</span>
+                    </div>
+                    <p className="text-xs text-neutral-400 mt-1">
+                      Porabljeno ta mesec: {formatEur(item.currentSpend)}
+                    </p>
+                  </div>
+                  <span className={clsx(
+                    "pill flex-shrink-0",
+                    item.monthlyLimit > 0 ? "pill-blue" : "pill-gray"
+                  )}>
+                    {item.monthlyLimit > 0 ? formatEur(item.monthlyLimit) : "Ni limita"}
+                  </span>
+                </div>
+
+                <div className="progress-bar">
+                  <div
+                    className={clsx("progress-fill", budgetColor(pct))}
+                    style={{ width: `${pct}%` }}
+                  />
+                </div>
+
+                <div className="flex gap-2">
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    inputMode="decimal"
+                    className="input h-9"
+                    placeholder="npr. 350"
+                    value={item.draft}
+                    onChange={(event) => setBudgetDrafts((drafts) => ({
+                      ...drafts,
+                      [item.category.code]: event.target.value,
+                    }))}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") saveBudgetLimit(item.category.code);
+                    }}
+                  />
+                  <button
+                    className="btn-secondary h-9"
+                    disabled={isSaving}
+                    onClick={() => saveBudgetLimit(item.category.code)}
+                    title="Shrani limit"
+                  >
+                    {isSaving ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
+                    Shrani
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        <p className="text-[11px] text-neutral-400 mt-3">
+          Če pustiš znesek prazen ali vneseš 0, se limit za kategorijo odstrani.
+        </p>
       </div>
 
       {/* Tabela */}

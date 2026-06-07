@@ -48,7 +48,7 @@ export default function SetupPage() {
             <Home size={20} className="text-white" />
           </div>
           <div>
-            <div className="text-lg font-semibold text-neutral-900">Moje finance</div>
+            <div className="text-lg font-semibold text-neutral-900">LifeDesk</div>
             <div className="text-[11px] text-neutral-400 -mt-0.5">Nastavitev gospodinjstva</div>
           </div>
         </div>

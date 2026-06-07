@@ -1,6 +1,6 @@
-# Moje finance
+# LifeDesk
 
-Gospodinjski ERP — upravljanje družinskih financ, članov in dokumentov.
+Domača administracija brez pozabljanja — roki, dokumenti, opomniki in stroški za gospodinjstvo.
 
 ## Zagon projekta
 
@@ -38,11 +38,11 @@ src/
 │   ├── layout/
 │   │   └── Sidebar.tsx  ← Navigacija (desktop + mobile drawer)
 │   └── modules/
-│       ├── Dashboard.tsx    ← Nadzorna plošča
-│       ├── Finance.tsx      ← Transakcije
+│       ├── Dashboard.tsx    ← Danes: roki, opomniki, dokumenti in stroški
+│       ├── Finance.tsx      ← Stroški in prihodki
 │       ├── Documents.tsx    ← Dokumenti + OCR
 │       ├── Members.tsx      ← Člani gospodinjstva
-│       ├── Calculators.tsx  ← Kalkulatorji (+ integracija Finančni majster)
+│       ├── Calculators.tsx  ← Kalkulatorji
 │       └── Settings.tsx     ← Šifranti + nastavitve
 ├── lib/
 │   ├── data.ts          ← Mock podatki (začasni, zamenjaj s Supabase)
@@ -64,7 +64,7 @@ src/
 - [ ] Row Level Security (vsaka družina vidi samo svoje podatke)
 - [ ] Zamenjaj `src/lib/data.ts` s Supabase klicem
 
-### Faza 3 — Integracija Finančni majster
+### Faza 3 — Kalkulatorji
 - [ ] Poveži GitHub repozitorij kalkulatorjev
 - [ ] Uvozi komponente v `src/components/modules/Calculators.tsx`
 

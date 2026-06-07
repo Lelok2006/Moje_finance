@@ -522,7 +522,7 @@ export default function Settings() {
 
           {/* Verzija */}
           <div className="text-center text-[10px] text-neutral-300 pt-2">
-            Moje finance v0.1.0 · Podatki shranjeni varno v Supabase
+            LifeDesk v0.1.0 · Podatki shranjeni varno v Supabase
           </div>
         </div>
       </div>

@@ -152,7 +152,7 @@ export default function Calculators() {
               iframeReady ? "opacity-100" : "opacity-0 h-0"
             )}
             style={{ height: iframeReady ? "620px" : "0" }}
-            title="Moje finance kalkulator"
+            title="LifeDesk kalkulator"
             onLoad={() => setIframeReady(true)}
           />
         </div>

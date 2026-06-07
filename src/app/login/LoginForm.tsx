@@ -89,8 +89,8 @@ export default function LoginForm() {
             <Home size={20} className="text-white" />
           </div>
           <div>
-            <div className="text-lg font-semibold text-neutral-900">Moje finance</div>
-            <div className="text-[11px] text-neutral-400 -mt-0.5">Gospodinjski ERP</div>
+            <div className="text-lg font-semibold text-neutral-900">LifeDesk</div>
+            <div className="text-[11px] text-neutral-400 -mt-0.5">Domača administracija brez pozabljanja</div>
           </div>
         </div>
 
@@ -173,7 +173,7 @@ export default function LoginForm() {
         </div>
 
         <p className="text-center text-[11px] text-neutral-300 mt-6">
-          Moje finance · Podatki shranjeni varno v Supabase
+          LifeDesk · Podatki shranjeni varno v Supabase
         </p>
       </div>
     </div>

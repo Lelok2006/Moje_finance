@@ -25,6 +25,9 @@ node_modules/
 *.pem
 Thumbs.db
 ZAPISNIK_LOKALNO.md
+TESTNI_SCENARIJ.md
+TESTNI_SCENARIJ_LIFEDESK.docx
+scripts/
 
 # debug logs
 npm-debug.log*
