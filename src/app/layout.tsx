@@ -22,7 +22,7 @@ export default function RootLayout({
     <html lang="sl" suppressHydrationWarning>
       <head>
         {/* Anti-flash: nastavi dark class pred hydracijo */}
-        <script dangerouslySetInnerHTML={{ __html: `try{if(localStorage.getItem('lifedesk-theme')==='dark')document.documentElement.classList.add('dark')}catch(e){}` }} />
+        <script dangerouslySetInnerHTML={{ __html: `try{const s=localStorage.getItem('lifedesk-theme');if(s==='dark'||(!s&&matchMedia('(prefers-color-scheme:dark)').matches))document.documentElement.classList.add('dark')}catch(e){}` }} />
       </head>
       <body>{children}</body>
     </html>
