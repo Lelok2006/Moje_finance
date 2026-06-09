@@ -3,7 +3,7 @@
 import { useCallback, useRef, useState, useEffect } from "react";
 import {
   Upload, FileText, FileCheck, FileWarning, Check, X,
-  Clock, Loader2, ChevronRight,
+  Clock, Loader2, ChevronRight, Search, FolderArchive, FilterX,
 } from "lucide-react";
 import { CATEGORIES } from "@/lib/data";
 import { formatDate, getCategory } from "@/lib/utils";
@@ -50,6 +50,13 @@ const PAYMENT_LABEL: Record<string, string> = {
   paid:     "Poravnano",
   canceled: "Preklicano",
 };
+const STATUS_OPTIONS = [
+  { value: "all",             label: "Vsi statusi" },
+  { value: "pending_ocr",     label: "OCR..." },
+  { value: "pending_confirm", label: "Čaka potrditev" },
+  { value: "booked",          label: "Vknjiženo" },
+  { value: "archived",        label: "Arhiv" },
+];
 
 // ── Razširjen tip z OCR besedilom ─────────────────────────────
 
@@ -359,6 +366,10 @@ export default function Documents() {
   const [loadError, setLoadError] = useState("");
   const [isDragging, setIsDragging]  = useState(false);
   const [selectedDoc, setSelectedDoc] = useState<DocWithOcr | null>(null);
+  const [archiveQuery, setArchiveQuery] = useState("");
+  const [archiveType, setArchiveType] = useState("all");
+  const [archiveStatus, setArchiveStatus] = useState("all");
+  const [archivePayment, setArchivePayment] = useState("all");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchDocuments = useCallback(async () => {
@@ -495,6 +506,33 @@ export default function Documents() {
 
   const pending = allOcrPending;
   const rest    = allOcrRest;
+  const normalizedArchiveQuery = normalizeSearch(archiveQuery);
+  const filteredArchive = rest.filter((doc) => {
+    const matchesType = archiveType === "all" || doc.type === archiveType;
+    const matchesStatus = archiveStatus === "all" || doc.status === archiveStatus;
+    const matchesPayment = archivePayment === "all" || doc.paymentStatus === archivePayment;
+    const category = doc.ocrSuggestedCategory ? getCategory(doc.ocrSuggestedCategory) : null;
+    const searchable = normalizeSearch([
+      doc.name,
+      DOC_TYPE_LABEL[doc.type],
+      STATUS_LABEL[doc.status],
+      PAYMENT_LABEL[doc.paymentStatus ?? "unknown"],
+      category?.name,
+      doc.ocrAmount?.toString(),
+      doc.documentDate,
+      doc.dueDate,
+      doc.expiryDate,
+      doc.ocrRawText,
+    ].filter(Boolean).join(" "));
+    const matchesQuery = !normalizedArchiveQuery || searchable.includes(normalizedArchiveQuery);
+
+    return matchesType && matchesStatus && matchesPayment && matchesQuery;
+  });
+  const hasArchiveFilters =
+    Boolean(archiveQuery.trim()) ||
+    archiveType !== "all" ||
+    archiveStatus !== "all" ||
+    archivePayment !== "all";
   const renewalDocs = ocrDocs
     .filter((doc) => doc.status !== "archived")
     .filter((doc) => doc.expiryDate || (doc.paymentStatus === "pending" && doc.dueDate))
@@ -699,14 +737,66 @@ export default function Documents() {
         </div>
       )}
 
-      {/* Vsi dokumenti */}
+      {/* Arhiv dokumentov */}
       <div className="card">
-        <div className="card-title">Vsi dokumenti</div>
+        <div className="card-title">
+          <span className="flex items-center gap-2">
+            <FolderArchive size={15} />Arhiv dokumentov
+          </span>
+          <span className="text-[11px] font-normal text-neutral-400">
+            {filteredArchive.length}/{rest.length}
+          </span>
+        </div>
+        <div className="space-y-3 mb-4">
+          <div className="relative">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-300" />
+            <input
+              className="input pl-9"
+              value={archiveQuery}
+              onChange={(event) => setArchiveQuery(event.target.value)}
+              placeholder="Išči po imenu, OCR vsebini, znesku, datumu ali kategoriji"
+            />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
+            <AppSelect
+              value={archiveType}
+              placeholder="Tip dokumenta"
+              options={[{ value: "all", label: "Vsi tipi" }, ...DOC_TYPES]}
+              onChange={(value) => setArchiveType(value)}
+            />
+            <AppSelect
+              value={archiveStatus}
+              placeholder="Status"
+              options={STATUS_OPTIONS}
+              onChange={(value) => setArchiveStatus(value)}
+            />
+            <AppSelect
+              value={archivePayment}
+              placeholder="Plačilo"
+              options={[{ value: "all", label: "Vsa plačila" }, ...PAYMENT_OPTIONS]}
+              onChange={(value) => setArchivePayment(value)}
+            />
+            <button
+              className="btn-secondary justify-center"
+              disabled={!hasArchiveFilters}
+              onClick={() => {
+                setArchiveQuery("");
+                setArchiveType("all");
+                setArchiveStatus("all");
+                setArchivePayment("all");
+              }}
+            >
+              <FilterX size={14} />Počisti
+            </button>
+          </div>
+        </div>
         {rest.length === 0 ? (
           <p className="text-xs text-neutral-400 py-4 text-center">Ni dokumentov</p>
+        ) : filteredArchive.length === 0 ? (
+          <p className="text-xs text-neutral-400 py-4 text-center">Ni dokumentov za izbrane filtre.</p>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {rest.map((doc) => (
+            {filteredArchive.map((doc) => (
               <div
                 key={doc.id}
                 onClick={() => openDoc(doc)}
@@ -795,6 +885,13 @@ function daysUntilDate(iso: string) {
   const target = new Date(iso);
   target.setHours(0, 0, 0, 0);
   return Math.ceil((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+}
+
+function normalizeSearch(value: string) {
+  return value
+    .toLocaleLowerCase("sl-SI")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
 }
 
 function docIconBg(type: string) {
