@@ -614,70 +614,6 @@ export default function Calendar() {
         </div>
       )}
 
-      <div className="card">
-        <div className="card-title">
-          <span>Plasti koledarja</span>
-          <span className="text-[11px] font-normal text-neutral-400">vklopi, kar uporabljaš</span>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {MAIN_CALENDAR_TYPES.map((type) => {
-            const active = visibleTypes.includes(type);
-            return (
-              <button
-                key={type}
-                type="button"
-                onClick={() => toggleType(type)}
-                className={clsx(
-                  "pill text-[11px] transition-all",
-                  active ? EVENT_PILL[type] : "pill-gray opacity-60"
-                )}
-              >
-                <span className={clsx("w-2 h-2 rounded-full", active ? EVENT_DOT[type] : "bg-neutral-300")} />
-                {EVENT_LABEL[type]}
-              </button>
-            );
-          })}
-        </div>
-        <div className="mt-4 rounded-lg border border-neutral-100 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-800 p-3">
-          <div className="text-xs font-medium text-neutral-700 mb-2">Opcijsko</div>
-          <div className="flex flex-wrap gap-2">
-            {OPTIONAL_CALENDAR_TYPES.map((type) => {
-              const active = visibleTypes.includes(type);
-              const count = typeCount(type);
-              return (
-                <button
-                  key={type}
-                  type="button"
-                  onClick={() => toggleType(type)}
-                  className={clsx(
-                    "pill text-[11px] transition-all",
-                    active ? EVENT_PILL[type] : "pill-gray opacity-70"
-                  )}
-                >
-                  <span className={clsx("w-2 h-2 rounded-full", active ? EVENT_DOT[type] : "bg-neutral-300")} />
-                  {active ? "Vklopljeno: " : "Vklopi: "}{EVENT_LABEL[type]} ({count})
-                </button>
-              );
-            })}
-          </div>
-          <div className="mt-3 max-w-xs">
-            <label className="block text-[10px] uppercase tracking-wide text-neutral-400 mb-1">
-              Regija za zimske počitnice
-            </label>
-            <AppSelect
-              value={schoolHolidayGroup}
-              placeholder="Izberi regijo"
-              options={SCHOOL_HOLIDAY_GROUPS.map((group) => ({ value: group.value, label: group.label }))}
-              onChange={(value) => setSchoolHolidayGroup(value as SchoolHolidayGroup)}
-            />
-          </div>
-        </div>
-        <p className="text-[11px] text-neutral-400 mt-3">
-          Šolske počitnice in dela prosti dnevi niso privzeto prikazani. Vklopi jih tukaj, če jih želiš videti v koledarju.
-          Dela prosti dnevi in šolske počitnice se izračunajo za prikazano leto; izbrana regija vpliva na zimske počitnice.
-        </p>
-      </div>
-
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
 
         {/* Levo: mesečna mreža + dogodki meseca */}
@@ -763,6 +699,70 @@ export default function Calendar() {
                 </div>
               ))}
             </div>
+          </div>
+
+          <div className="card">
+            <div className="card-title">
+              <span>Plasti koledarja</span>
+              <span className="text-[11px] font-normal text-neutral-400">vklopi, kar uporabljaš</span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {MAIN_CALENDAR_TYPES.map((type) => {
+                const active = visibleTypes.includes(type);
+                return (
+                  <button
+                    key={type}
+                    type="button"
+                    onClick={() => toggleType(type)}
+                    className={clsx(
+                      "pill text-[11px] transition-all",
+                      active ? EVENT_PILL[type] : "pill-gray opacity-60"
+                    )}
+                  >
+                    <span className={clsx("w-2 h-2 rounded-full", active ? EVENT_DOT[type] : "bg-neutral-300")} />
+                    {EVENT_LABEL[type]}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="mt-4 rounded-lg border border-neutral-100 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-800 p-3">
+              <div className="text-xs font-medium text-neutral-700 mb-2">Opcijsko</div>
+              <div className="flex flex-wrap gap-2">
+                {OPTIONAL_CALENDAR_TYPES.map((type) => {
+                  const active = visibleTypes.includes(type);
+                  const count = typeCount(type);
+                  return (
+                    <button
+                      key={type}
+                      type="button"
+                      onClick={() => toggleType(type)}
+                      className={clsx(
+                        "pill text-[11px] transition-all",
+                        active ? EVENT_PILL[type] : "pill-gray opacity-70"
+                      )}
+                    >
+                      <span className={clsx("w-2 h-2 rounded-full", active ? EVENT_DOT[type] : "bg-neutral-300")} />
+                      {active ? "Vklopljeno: " : "Vklopi: "}{EVENT_LABEL[type]} ({count})
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="mt-3 max-w-xs">
+                <label className="block text-[10px] uppercase tracking-wide text-neutral-400 mb-1">
+                  Regija za zimske počitnice
+                </label>
+                <AppSelect
+                  value={schoolHolidayGroup}
+                  placeholder="Izberi regijo"
+                  options={SCHOOL_HOLIDAY_GROUPS.map((group) => ({ value: group.value, label: group.label }))}
+                  onChange={(value) => setSchoolHolidayGroup(value as SchoolHolidayGroup)}
+                />
+              </div>
+            </div>
+            <p className="text-[11px] text-neutral-400 mt-3">
+              Šolske počitnice in dela prosti dnevi niso privzeto prikazani. Vklopi jih tukaj, če jih želiš videti v koledarju.
+              Dela prosti dnevi in šolske počitnice se izračunajo za prikazano leto; izbrana regija vpliva na zimske počitnice.
+            </p>
           </div>
 
           {/* Dogodki tega meseca / izbranega dne */}

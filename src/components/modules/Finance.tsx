@@ -410,14 +410,9 @@ export default function Finance() {
 
   const isCurrentMonth = year === today.getFullYear() && month === today.getMonth() + 1;
 
-  async function openDocument(tx: FinanceTransaction) {
-    if (!tx.document?.filePath) return;
-    const { data, error } = await supabase.storage
-      .from("documents")
-      .createSignedUrl(tx.document.filePath, 600);
-
-    if (error || !data?.signedUrl) return;
-    window.open(data.signedUrl, "_blank", "noopener,noreferrer");
+  function openDocument(tx: FinanceTransaction) {
+    if (!tx.document?.id) return;
+    window.open(`/api/documents/open?id=${encodeURIComponent(tx.document.id)}`, "_blank", "noopener,noreferrer");
   }
 
   async function saveBudgetLimit(categoryCode: string) {
@@ -536,89 +531,6 @@ export default function Finance() {
             {formatEur(balance, true)}
           </div>
         </div>
-      </div>
-
-      {/* Proračun */}
-      <div className="card">
-        <div className="card-title">
-          <span className="flex items-center gap-2"><Target size={15} />Mesečni limiti po kategorijah</span>
-          <span className="text-[11px] font-normal text-neutral-400">mesečni limit</span>
-        </div>
-
-        {budgetError && (
-          <p className="mb-3 text-xs text-expense-700 bg-expense-50 border border-expense-200 rounded-lg px-3 py-2">
-            {budgetError}
-          </p>
-        )}
-
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          {budgetWithSpend.map((item) => {
-            const pct = item.monthlyLimit > 0
-              ? Math.min(100, Math.round((item.currentSpend / item.monthlyLimit) * 100))
-              : 0;
-            const isSaving = budgetSavingCode === item.category.code;
-
-            return (
-              <div key={item.category.code} className="border border-neutral-100 dark:border-neutral-800 rounded-lg p-3 space-y-3">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="sif-code">{item.category.code}</span>
-                      <span className="text-sm font-medium text-neutral-800">{item.category.name}</span>
-                    </div>
-                    <p className="text-xs text-neutral-400 mt-1">
-                      Porabljeno ta mesec: {formatEur(item.currentSpend)}
-                    </p>
-                  </div>
-                  <span className={clsx(
-                    "pill flex-shrink-0",
-                    item.monthlyLimit > 0 ? "pill-blue" : "pill-gray"
-                  )}>
-                    {item.monthlyLimit > 0 ? formatEur(item.monthlyLimit) : "Ni limita"}
-                  </span>
-                </div>
-
-                <div className="progress-bar">
-                  <div
-                    className={clsx("progress-fill", budgetColor(pct))}
-                    style={{ width: `${pct}%` }}
-                  />
-                </div>
-
-                <div className="flex gap-2">
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    inputMode="decimal"
-                    className="input h-9"
-                    placeholder="npr. 350"
-                    value={item.draft}
-                    onChange={(event) => setBudgetDrafts((drafts) => ({
-                      ...drafts,
-                      [item.category.code]: event.target.value,
-                    }))}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter") saveBudgetLimit(item.category.code);
-                    }}
-                  />
-                  <button
-                    className="btn-secondary h-9"
-                    disabled={isSaving}
-                    onClick={() => saveBudgetLimit(item.category.code)}
-                    title="Shrani limit"
-                  >
-                    {isSaving ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
-                    Shrani
-                  </button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-        <p className="text-[11px] text-neutral-400 mt-3">
-          Če pustiš znesek prazen ali vneseš 0, se limit za kategorijo odstrani.
-        </p>
       </div>
 
       {/* Tabela */}
@@ -778,6 +690,89 @@ export default function Finance() {
             </div>
           </>
         )}
+      </div>
+
+      {/* Proračun */}
+      <div className="card">
+        <div className="card-title">
+          <span className="flex items-center gap-2"><Target size={15} />Mesečni limiti po kategorijah</span>
+          <span className="text-[11px] font-normal text-neutral-400">mesečni limit</span>
+        </div>
+
+        {budgetError && (
+          <p className="mb-3 text-xs text-expense-700 bg-expense-50 border border-expense-200 rounded-lg px-3 py-2">
+            {budgetError}
+          </p>
+        )}
+
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {budgetWithSpend.map((item) => {
+            const pct = item.monthlyLimit > 0
+              ? Math.min(100, Math.round((item.currentSpend / item.monthlyLimit) * 100))
+              : 0;
+            const isSaving = budgetSavingCode === item.category.code;
+
+            return (
+              <div key={item.category.code} className="border border-neutral-100 dark:border-neutral-800 rounded-lg p-3 space-y-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="sif-code">{item.category.code}</span>
+                      <span className="text-sm font-medium text-neutral-800">{item.category.name}</span>
+                    </div>
+                    <p className="text-xs text-neutral-400 mt-1">
+                      Porabljeno ta mesec: {formatEur(item.currentSpend)}
+                    </p>
+                  </div>
+                  <span className={clsx(
+                    "pill flex-shrink-0",
+                    item.monthlyLimit > 0 ? "pill-blue" : "pill-gray"
+                  )}>
+                    {item.monthlyLimit > 0 ? formatEur(item.monthlyLimit) : "Ni limita"}
+                  </span>
+                </div>
+
+                <div className="progress-bar">
+                  <div
+                    className={clsx("progress-fill", budgetColor(pct))}
+                    style={{ width: `${pct}%` }}
+                  />
+                </div>
+
+                <div className="flex gap-2">
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    inputMode="decimal"
+                    className="input h-9"
+                    placeholder="npr. 350"
+                    value={item.draft}
+                    onChange={(event) => setBudgetDrafts((drafts) => ({
+                      ...drafts,
+                      [item.category.code]: event.target.value,
+                    }))}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") saveBudgetLimit(item.category.code);
+                    }}
+                  />
+                  <button
+                    className="btn-secondary h-9"
+                    disabled={isSaving}
+                    onClick={() => saveBudgetLimit(item.category.code)}
+                    title="Shrani limit"
+                  >
+                    {isSaving ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
+                    Shrani
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        <p className="text-[11px] text-neutral-400 mt-3">
+          Če pustiš znesek prazen ali vneseš 0, se limit za kategorijo odstrani.
+        </p>
       </div>
 
       {/* Modal forma */}
