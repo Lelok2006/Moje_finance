@@ -309,7 +309,7 @@ export default function Members() {
                     {member.type === "adult" ? "Odrasli" : member.type === "child" ? "Otrok" : "Žival"}
                   </span>
                 </div>
-                <div className="flex justify-center gap-6 pt-3 border-t border-neutral-100">
+                <div className="flex justify-center gap-6 pt-3 border-t border-neutral-100 dark:border-neutral-800">
                   <div className="text-center">
                     <div className="text-sm font-semibold text-income-700">{formatEur(memberIncome)}</div>
                     <div className="text-[10px] text-neutral-400">Prihodki</div>
@@ -343,7 +343,7 @@ export default function Members() {
             const days = daysUntil(event.date);
             const member = members.find((item) => item.id === event.memberId);
             return (
-              <div key={event.id} className="flex items-center gap-3 py-2.5 border-b border-neutral-100 last:border-0">
+              <div key={event.id} className="flex items-center gap-3 py-2.5 border-b border-neutral-100 dark:border-neutral-800 last:border-0">
                 <div className="w-11 text-center flex-shrink-0">
                   <div className="text-base font-semibold text-neutral-900 leading-none">{d.getDate()}</div>
                   <div className="text-[10px] text-neutral-400 uppercase">

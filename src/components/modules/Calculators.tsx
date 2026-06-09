@@ -83,16 +83,36 @@ const CATS = [
 export default function Calculators() {
   const [activeCalc, setActiveCalc] = useState<string | null>(null);
   const [iframeReady, setIframeReady] = useState(false);
+  const [theme, setTheme] = useState<"light" | "dark">("light");
   const iframeRef = useRef<HTMLIFrameElement>(null);
+
+  useEffect(() => {
+    function readTheme() {
+      setTheme(document.documentElement.classList.contains("dark") ? "dark" : "light");
+    }
+
+    function handleThemeChange(event: Event) {
+      const next = (event as CustomEvent<"light" | "dark">).detail;
+      setTheme(next === "dark" ? "dark" : "light");
+    }
+
+    readTheme();
+    window.addEventListener("lifedesk-theme-change", handleThemeChange);
+    return () => window.removeEventListener("lifedesk-theme-change", handleThemeChange);
+  }, []);
 
   // Ko iframe naloži, mu pošljemo ukaz za direktno navigacijo
   useEffect(() => {
     if (!activeCalc || !iframeReady) return;
     iframeRef.current?.contentWindow?.postMessage(
+      { type: "SET_THEME", theme },
+      window.location.origin
+    );
+    iframeRef.current?.contentWindow?.postMessage(
       { type: "NAVIGATE", calcId: activeCalc },
       window.location.origin
     );
-  }, [activeCalc, iframeReady]);
+  }, [activeCalc, iframeReady, theme]);
 
   function openCalc(id: string) {
     setIframeReady(false);
@@ -106,7 +126,7 @@ export default function Calculators() {
 
   // URL z hash za direktno navigacijo
   const iframeSrc = activeCalc
-    ? `/kalkulatorji.html#${activeCalc}`
+    ? `/kalkulatorji.html?theme=${theme}#${activeCalc}`
     : null;
 
   return (
@@ -132,7 +152,7 @@ export default function Calculators() {
             </div>
             <button
               onClick={closeCalc}
-              className="p-1.5 rounded-lg hover:bg-neutral-200 transition-colors"
+              className="p-1.5 rounded-lg hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
               aria-label="Zapri kalkulator"
             >
               <X size={16} className="text-neutral-500" />
@@ -164,7 +184,7 @@ export default function Calculators() {
           <div key={cat.id} className="card p-0 overflow-hidden">
             {/* Kategorija header */}
             <div
-              className="flex items-center gap-3 px-4 py-3 border-b border-neutral-100"
+              className="flex items-center gap-3 px-4 py-3 border-b border-neutral-100 dark:border-neutral-800 bg-white dark:bg-neutral-900"
               style={{ borderLeft: `3px solid ${cat.color}` }}
             >
               <span
@@ -176,7 +196,7 @@ export default function Calculators() {
               >
                 {cat.num}
               </span>
-              <span className="text-sm font-medium text-neutral-800">{cat.title}</span>
+              <span className="text-sm font-medium text-neutral-800 dark:text-neutral-100">{cat.title}</span>
               <span className="text-xs text-neutral-400 ml-auto">
                 {cat.calcs.length} kalkulatorjev
               </span>
@@ -205,8 +225,8 @@ export default function Calculators() {
                     className={clsx(
                       "text-xs flex-1",
                       activeCalc === calc.id
-                        ? "text-brand-600 font-medium"
-                        : "text-neutral-700"
+                        ? "text-brand-600 dark:text-brand-500 font-medium"
+                        : "text-neutral-700 dark:text-neutral-200"
                     )}
                   >
                     {calc.name}

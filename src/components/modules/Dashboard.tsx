@@ -335,7 +335,7 @@ export default function Dashboard() {
             {upcoming.map((item) => {
               const days = daysUntil(item.date);
               return (
-                <div key={item.id} className="flex items-center gap-3 py-2 border-b border-neutral-100 last:border-0">
+                <div key={item.id} className="flex items-center gap-3 py-2 border-b border-neutral-100 dark:border-neutral-800 last:border-0">
                   <div className="w-10 text-center flex-shrink-0">
                     <div className="text-base font-semibold text-neutral-900 leading-none">
                       {new Date(item.date).getDate()}
@@ -364,11 +364,11 @@ export default function Dashboard() {
         <div className="card">
           <div className="card-title">Stroški kot kontekst</div>
           <div className="grid grid-cols-2 gap-3">
-            <div className="rounded-lg border border-neutral-100 p-3">
+            <div className="rounded-lg border border-neutral-100 dark:border-neutral-800 p-3">
               <div className="kpi-label"><ReceiptText size={12} className="text-expense-700" />Stroški meseca</div>
               <div className="text-xl font-semibold text-expense-700">{formatEur(expense)}</div>
             </div>
-            <div className="rounded-lg border border-neutral-100 p-3">
+            <div className="rounded-lg border border-neutral-100 dark:border-neutral-800 p-3">
               <div className="kpi-label"><PieChart size={12} className="text-warn-700" />Proračun</div>
               <div className="text-xl font-semibold text-warn-700">{budgetPct} %</div>
               <div className="text-[10px] text-neutral-400">{totalBudgetLimit > 0 ? "porabljenega limita" : "glede na prihodke"}</div>
@@ -538,7 +538,7 @@ export default function Dashboard() {
               const d = new Date(item.date);
               const days = Math.abs(daysUntil(item.date));
               return (
-                <div key={item.id} className="flex items-center gap-3 py-2 border-b border-neutral-100 last:border-0">
+                <div key={item.id} className="flex items-center gap-3 py-2 border-b border-neutral-100 dark:border-neutral-800 last:border-0">
                   <div className="w-10 text-center flex-shrink-0">
                     <div className="text-base font-semibold text-neutral-900 leading-none">{d.getDate()}</div>
                     <div className="text-[9px] text-neutral-400 uppercase">

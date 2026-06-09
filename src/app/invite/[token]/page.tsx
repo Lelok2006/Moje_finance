@@ -78,7 +78,7 @@ export default function InvitePage() {
   }
 
   return (
-    <div className="min-h-screen bg-neutral-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950 flex items-center justify-center p-4">
       <div className="w-full max-w-sm text-center">
 
         <div className="w-12 h-12 bg-brand-600 rounded-xl flex items-center justify-center mx-auto mb-6">
@@ -90,7 +90,7 @@ export default function InvitePage() {
         )}
 
         {state === "valid" && (
-          <div className="bg-white border border-neutral-100 rounded-2xl p-6 shadow-sm">
+          <div className="bg-white dark:bg-neutral-900 border border-neutral-100 dark:border-neutral-800 rounded-2xl p-6 shadow-sm">
             <h2 className="text-base font-semibold text-neutral-900 mb-1">Povabilo v gospodinjstvo</h2>
             <p className="text-sm text-neutral-500 mb-1">Pridružuješ se gospodinjstvu</p>
             <p className="text-lg font-semibold text-brand-600 mb-5">{householdName}</p>

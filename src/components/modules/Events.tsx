@@ -84,18 +84,28 @@ const SCHOOL_HOLIDAY_GROUPS = [
   },
 ] as const;
 
-const WINTER_SCHOOL_HOLIDAYS: Record<string, Record<(typeof SCHOOL_HOLIDAY_GROUPS)[number]["value"], { start: string; end: string }>> = {
-  "2025/2026": {
-    west: { start: "2026-02-16", end: "2026-02-20" },
-    east: { start: "2026-02-23", end: "2026-02-27" },
-  },
-  "2026/2027": {
-    east: { start: "2027-02-15", end: "2027-02-19" },
-    west: { start: "2027-02-22", end: "2027-02-26" },
-  },
-};
+type SchoolHolidayGroup = (typeof SCHOOL_HOLIDAY_GROUPS)[number]["value"];
 
-type SchoolHolidayGroup = keyof (typeof WINTER_SCHOOL_HOLIDAYS)["2025/2026"];
+const SCHOOL_HOLIDAY_RANGES: Array<{
+  schoolYear: string;
+  title: string;
+  start: string;
+  end: string;
+  group?: SchoolHolidayGroup;
+}> = [
+  { schoolYear: "2025/2026", title: "Jesenske šolske počitnice", start: "2025-10-27", end: "2025-10-31" },
+  { schoolYear: "2025/2026", title: "Novoletne šolske počitnice", start: "2025-12-25", end: "2026-01-02" },
+  { schoolYear: "2025/2026", title: "Zimske šolske počitnice", start: "2026-02-16", end: "2026-02-20", group: "west" },
+  { schoolYear: "2025/2026", title: "Zimske šolske počitnice", start: "2026-02-23", end: "2026-02-27", group: "east" },
+  { schoolYear: "2025/2026", title: "Prvomajske šolske počitnice", start: "2026-04-27", end: "2026-05-01" },
+  { schoolYear: "2025/2026", title: "Poletne šolske počitnice", start: "2026-06-26", end: "2026-08-31" },
+  { schoolYear: "2026/2027", title: "Jesenske šolske počitnice", start: "2026-10-26", end: "2026-10-30" },
+  { schoolYear: "2026/2027", title: "Novoletne šolske počitnice", start: "2026-12-25", end: "2027-01-02" },
+  { schoolYear: "2026/2027", title: "Zimske šolske počitnice", start: "2027-02-15", end: "2027-02-19", group: "east" },
+  { schoolYear: "2026/2027", title: "Zimske šolske počitnice", start: "2027-02-22", end: "2027-02-26", group: "west" },
+  { schoolYear: "2026/2027", title: "Prvomajske šolske počitnice", start: "2027-04-27", end: "2027-05-02" },
+  { schoolYear: "2026/2027", title: "Poletne šolske počitnice", start: "2027-06-28", end: "2027-08-31" },
+];
 
 function easterSunday(year: number) {
   const a = year % 19;
@@ -150,6 +160,21 @@ function datesInRange(startIso: string, endIso: string) {
   return dates;
 }
 
+function schoolHolidaysForYear(year: number, group: SchoolHolidayGroup) {
+  const groupLabel = SCHOOL_HOLIDAY_GROUPS.find((item) => item.value === group)?.label ?? group;
+
+  return SCHOOL_HOLIDAY_RANGES.flatMap((range) => {
+    if (range.group && range.group !== group) return [];
+    return datesInRange(range.start, range.end)
+      .filter((date) => date.startsWith(`${year}-`))
+      .map((date) => ({
+        title: range.title,
+        date,
+        description: range.group ? `${range.schoolYear} · ${groupLabel}` : range.schoolYear,
+      }));
+  }).sort((a, b) => a.date.localeCompare(b.date));
+}
+
 export default function Events() {
   const [events, setEvents] = useState<CalendarEvent[]>(EVENTS);
   const [members, setMembers] = useState<Member[]>(MEMBERS);
@@ -158,7 +183,7 @@ export default function Events() {
   const [addingHolidays, setAddingHolidays] = useState(false);
   const [addingSchoolHolidays, setAddingSchoolHolidays] = useState(false);
   const [holidayYear, setHolidayYear] = useState(new Date().getFullYear());
-  const [schoolYear, setSchoolYear] = useState("2025/2026");
+  const [schoolHolidayYear, setSchoolHolidayYear] = useState(new Date().getFullYear());
   const [schoolHolidayGroup, setSchoolHolidayGroup] = useState<SchoolHolidayGroup>("west");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -430,15 +455,15 @@ export default function Events() {
     setSuccess(`Dodani so dela prosti dnevi za ${holidayYear}.`);
   }
 
-  async function addWinterSchoolHolidays() {
+  async function addSchoolHolidays() {
     setAddingSchoolHolidays(true);
     setError("");
     setSuccess("");
 
-    const selected = WINTER_SCHOOL_HOLIDAYS[schoolYear]?.[schoolHolidayGroup];
-    if (!selected) {
+    const holidays = schoolHolidaysForYear(schoolHolidayYear, schoolHolidayGroup);
+    if (holidays.length === 0) {
       setAddingSchoolHolidays(false);
-      setError("Za izbrano šolsko leto še ni vnesenih podatkov.");
+      setError("Za izbrano leto še ni vnesenih podatkov o šolskih počitnicah.");
       return;
     }
 
@@ -451,27 +476,26 @@ export default function Events() {
     }
 
     const groupLabel = SCHOOL_HOLIDAY_GROUPS.find((group) => group.value === schoolHolidayGroup)?.label ?? schoolHolidayGroup;
-    const dates = datesInRange(selected.start, selected.end);
     const existingKeys = new Set(events.map((event) => `${event.date}|${event.title}|${event.type}`));
-    const missing = dates.filter((date) => !existingKeys.has(`${date}|Zimske šolske počitnice|school_holiday`));
+    const missing = holidays.filter((holiday) => !existingKeys.has(`${holiday.date}|${holiday.title}|school_holiday`));
 
     if (missing.length === 0) {
       setAddingSchoolHolidays(false);
-      setSuccess(`Zimske šolske počitnice za ${schoolYear} (${groupLabel}) so že dodane.`);
+      setSuccess(`Šolske počitnice za ${schoolHolidayYear} (${groupLabel}) so že dodane.`);
       return;
     }
 
     const { data: inserted, error: insertError } = await supabase
       .from("events")
-      .insert(missing.map((date) => ({
+      .insert(missing.map((holiday) => ({
         household_id: householdId,
-        title: "Zimske šolske počitnice",
-        date,
+        title: holiday.title,
+        date: holiday.date,
         type: "school_holiday" as EventType,
         member_id: null,
         person_name: null,
-        description: `${schoolYear} · ${groupLabel}`,
-        notes: `${schoolYear} · ${groupLabel}`,
+        description: holiday.description,
+        notes: holiday.description,
         reminder_enabled: false,
         reminder_frequency: "none" as ReminderFrequency,
         reminder_pattern: null,
@@ -489,7 +513,7 @@ export default function Events() {
     if (inserted) {
       setEvents((current) => [...current, ...inserted.map((row) => mapEvent(row))]);
     }
-    setSuccess(`Dodane so zimske šolske počitnice za ${schoolYear} (${groupLabel}).`);
+    setSuccess(`Dodane so šolske počitnice za ${schoolHolidayYear} (${groupLabel}).`);
   }
 
   return (
@@ -542,15 +566,17 @@ export default function Events() {
 
       <div className="card">
         <div className="card-title">
-          <span>Zimske šolske počitnice</span>
-          <span className="text-[11px] font-normal text-neutral-400">ročni vklop</span>
+          <span>Šolske počitnice</span>
+          <span className="text-[11px] font-normal text-neutral-400">Slovenija</span>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-[160px_190px_auto] gap-2 md:items-start">
-          <AppSelect
-            value={schoolYear}
-            placeholder="Šolsko leto"
-            options={Object.keys(WINTER_SCHOOL_HOLIDAYS).map((year) => ({ value: year, label: year }))}
-            onChange={setSchoolYear}
+        <div className="grid grid-cols-1 md:grid-cols-[130px_190px_auto] gap-2 md:items-start">
+          <input
+            className="input"
+            type="number"
+            min="2025"
+            max="2035"
+            value={schoolHolidayYear}
+            onChange={(event) => setSchoolHolidayYear(Number(event.target.value))}
           />
           <AppSelect
             value={schoolHolidayGroup}
@@ -560,19 +586,19 @@ export default function Events() {
           />
           <button
             className="btn-secondary justify-center"
-            onClick={addWinterSchoolHolidays}
+            onClick={addSchoolHolidays}
             disabled={addingSchoolHolidays}
           >
             {addingSchoolHolidays ? <Loader2 size={14} className="animate-spin" /> : <CalendarPlus size={14} />}
-            Dodaj zimske počitnice
+            Dodaj za celo leto
           </button>
         </div>
         <p className="text-[11px] text-neutral-400 mt-3">
-          Počitnice se dodajo samo, če jih vklopiš. V koledarju ostanejo skrite, dokler ne vklopiš plasti Šolske počitnice.
+          Doda jesenske, novoletne, zimske, prvomajske in poletne šolske počitnice za izbrano leto. Regija vpliva na zimske počitnice. Če so že dodane, jih ne podvoji.
         </p>
         <div className="mt-3 grid gap-2 md:grid-cols-2">
           {SCHOOL_HOLIDAY_GROUPS.map((group) => (
-            <div key={group.value} className="rounded-lg border border-neutral-100 px-3 py-2">
+            <div key={group.value} className="rounded-lg border border-neutral-100 dark:border-neutral-800 px-3 py-2">
               <div className="text-xs font-medium text-neutral-700">{group.label}</div>
               <div className="text-[10px] text-neutral-400 mt-0.5">{group.description}</div>
             </div>
@@ -736,7 +762,7 @@ export default function Events() {
               const reminderLabel = REMINDER_OPTIONS.find((option) => option.value === event.reminderFrequency)?.label ?? event.reminderFrequency;
               const detailText = event.description ?? event.notes;
               return (
-                <div key={event.id} className="rounded-lg border border-neutral-100 p-3 hover:border-neutral-200 transition-colors">
+                <div key={event.id} className="rounded-lg border border-neutral-100 dark:border-neutral-800 p-3 hover:border-neutral-200 dark:hover:border-neutral-700 transition-colors">
                   <div className="flex items-start gap-3">
                     <div className={clsx("mt-1 h-2.5 w-2.5 rounded-full flex-shrink-0", EVENT_DOT[event.type])} />
                     <div className="min-w-0 flex-1">

@@ -76,7 +76,7 @@ export default function AppSelect({
       {open && (
         <div
           role="listbox"
-          className="absolute z-[70] mt-1 w-full overflow-hidden rounded-lg border border-neutral-200 bg-white shadow-xl"
+          className="absolute z-[70] mt-1 w-full overflow-hidden rounded-lg border border-neutral-200 bg-white shadow-xl dark:border-neutral-700 dark:bg-neutral-900"
         >
           <div className="max-h-64 overflow-y-auto py-1">
             {options?.map((option) => (
@@ -127,8 +127,8 @@ function DropdownOption({
       className={clsx(
         "flex w-full items-center gap-2 px-3 py-2 text-left text-xs transition-colors",
         selected
-          ? "bg-brand-50 font-medium text-brand-600"
-          : "text-neutral-700 hover:bg-neutral-50"
+          ? "bg-brand-50 font-medium text-brand-600 dark:bg-neutral-800 dark:text-brand-500"
+          : "text-neutral-700 hover:bg-neutral-50 dark:text-neutral-200 dark:hover:bg-neutral-800"
       )}
     >
       <Check size={12} className={selected ? "opacity-100" : "opacity-0"} />

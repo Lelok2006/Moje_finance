@@ -37,6 +37,150 @@ const DEFAULT_VISIBLE_TYPES = EVENT_TYPES.filter((type) =>
 const OPTIONAL_CALENDAR_TYPES: EventType[] = ["school_holiday", "public_holiday"];
 const MAIN_CALENDAR_TYPES = EVENT_TYPES.filter((type) => !OPTIONAL_CALENDAR_TYPES.includes(type));
 const CALENDAR_LAYERS_STORAGE_KEY = "lifedesk-calendar-layers";
+const SCHOOL_HOLIDAY_GROUP_STORAGE_KEY = "lifedesk-school-holiday-group";
+
+const SCHOOL_HOLIDAY_GROUPS = [
+  {
+    value: "west",
+    label: "Zahodni del",
+  },
+  {
+    value: "east",
+    label: "Vzhodni del",
+  },
+] as const;
+
+type SchoolHolidayGroup = (typeof SCHOOL_HOLIDAY_GROUPS)[number]["value"];
+
+const SCHOOL_HOLIDAY_RANGES: Array<{
+  schoolYear: string;
+  title: string;
+  start: string;
+  end: string;
+  group?: SchoolHolidayGroup;
+}> = [
+  { schoolYear: "2025/2026", title: "Jesenske šolske počitnice", start: "2025-10-27", end: "2025-10-31" },
+  { schoolYear: "2025/2026", title: "Novoletne šolske počitnice", start: "2025-12-25", end: "2026-01-02" },
+  { schoolYear: "2025/2026", title: "Zimske šolske počitnice", start: "2026-02-16", end: "2026-02-20", group: "west" },
+  { schoolYear: "2025/2026", title: "Zimske šolske počitnice", start: "2026-02-23", end: "2026-02-27", group: "east" },
+  { schoolYear: "2025/2026", title: "Prvomajske šolske počitnice", start: "2026-04-27", end: "2026-05-01" },
+  { schoolYear: "2025/2026", title: "Poletne šolske počitnice", start: "2026-06-26", end: "2026-08-31" },
+  { schoolYear: "2026/2027", title: "Jesenske šolske počitnice", start: "2026-10-26", end: "2026-10-30" },
+  { schoolYear: "2026/2027", title: "Novoletne šolske počitnice", start: "2026-12-25", end: "2027-01-02" },
+  { schoolYear: "2026/2027", title: "Zimske šolske počitnice", start: "2027-02-15", end: "2027-02-19", group: "east" },
+  { schoolYear: "2026/2027", title: "Zimske šolske počitnice", start: "2027-02-22", end: "2027-02-26", group: "west" },
+  { schoolYear: "2026/2027", title: "Prvomajske šolske počitnice", start: "2027-04-27", end: "2027-05-02" },
+  { schoolYear: "2026/2027", title: "Poletne šolske počitnice", start: "2027-06-28", end: "2027-08-31" },
+];
+
+const SLOVENIAN_WORK_FREE_DAYS = [
+  { month: 1, day: 1, title: "Novo leto" },
+  { month: 1, day: 2, title: "Novo leto" },
+  { month: 2, day: 8, title: "Prešernov dan" },
+  { month: 4, day: 27, title: "Dan upora proti okupatorju" },
+  { month: 5, day: 1, title: "Praznik dela" },
+  { month: 5, day: 2, title: "Praznik dela" },
+  { month: 6, day: 25, title: "Dan državnosti" },
+  { month: 8, day: 15, title: "Marijino vnebovzetje" },
+  { month: 10, day: 31, title: "Dan reformacije" },
+  { month: 11, day: 1, title: "Dan spomina na mrtve" },
+  { month: 12, day: 25, title: "Božič" },
+  { month: 12, day: 26, title: "Dan samostojnosti in enotnosti" },
+] as const;
+
+function toLocalIso(date: Date) {
+  return [
+    date.getFullYear(),
+    String(date.getMonth() + 1).padStart(2, "0"),
+    String(date.getDate()).padStart(2, "0"),
+  ].join("-");
+}
+
+function easterSunday(year: number) {
+  const a = year % 19;
+  const b = Math.floor(year / 100);
+  const c = year % 100;
+  const d = Math.floor(b / 4);
+  const e = b % 4;
+  const f = Math.floor((b + 8) / 25);
+  const g = Math.floor((b - f + 1) / 3);
+  const h = (19 * a + b - d - g + 15) % 30;
+  const i = Math.floor(c / 4);
+  const k = c % 4;
+  const l = (32 + 2 * e + 2 * i - h - k) % 7;
+  const m = Math.floor((a + 11 * h + 22 * l) / 451);
+  const easterMonth = Math.floor((h + l - 7 * m + 114) / 31);
+  const easterDay = ((h + l - 7 * m + 114) % 31) + 1;
+  return new Date(year, easterMonth - 1, easterDay);
+}
+
+function workFreeDayEventsForYear(year: number, savedEvents: CalendarEvent[]): CalendarEvent[] {
+  const easter = easterSunday(year);
+  const easterMonday = new Date(easter);
+  easterMonday.setDate(easter.getDate() + 1);
+  const days = [
+    ...SLOVENIAN_WORK_FREE_DAYS.map((holiday) => ({
+      title: holiday.title,
+      date: `${year}-${String(holiday.month).padStart(2, "0")}-${String(holiday.day).padStart(2, "0")}`,
+    })),
+    { title: "Velikonočni ponedeljek", date: toLocalIso(easterMonday) },
+  ];
+  const savedKeys = new Set(savedEvents.map((event) => `${event.date}|${event.title}|${event.type}`));
+
+  return days
+    .filter((holiday) => !savedKeys.has(`${holiday.date}|${holiday.title}|public_holiday`))
+    .map((holiday) => ({
+      id: `work-free-${holiday.date}-${holiday.title}`,
+      title: holiday.title,
+      date: holiday.date,
+      type: "public_holiday" as EventType,
+      notes: "Slovenski dela prost dan",
+      description: "Slovenski dela prost dan",
+      source: "manual",
+      reminderEnabled: false,
+      reminderFrequency: "none",
+    }));
+}
+
+function datesInRange(startIso: string, endIso: string) {
+  const dates: string[] = [];
+  const current = new Date(startIso);
+  const end = new Date(endIso);
+
+  while (current <= end) {
+    dates.push(toLocalIso(current));
+    current.setDate(current.getDate() + 1);
+  }
+
+  return dates;
+}
+
+function schoolHolidayEventsForYear(
+  year: number,
+  group: SchoolHolidayGroup,
+  savedEvents: CalendarEvent[]
+): CalendarEvent[] {
+  const savedKeys = new Set(savedEvents.map((event) => `${event.date}|${event.title}|${event.type}`));
+  const groupLabel = SCHOOL_HOLIDAY_GROUPS.find((item) => item.value === group)?.label ?? group;
+
+  return SCHOOL_HOLIDAY_RANGES.flatMap((range) => {
+    if (range.group && range.group !== group) return [];
+    return datesInRange(range.start, range.end)
+      .filter((date) => date.startsWith(`${year}-`))
+      .filter((date) => !savedKeys.has(`${date}|${range.title}|school_holiday`))
+      .map((date) => ({
+        id: `school-holiday-${range.schoolYear}-${range.group ?? "all"}-${date}`,
+        title: range.title,
+        date,
+        type: "school_holiday" as EventType,
+        notes: range.group ? `${range.schoolYear} · ${groupLabel}` : range.schoolYear,
+        description: range.group ? `${range.schoolYear} · ${groupLabel}` : range.schoolYear,
+        source: "manual",
+        reminderEnabled: false,
+        reminderFrequency: "none" as ReminderFrequency,
+      }));
+  });
+}
 
 function mapEvent(row: Record<string, unknown>): CalendarEvent {
   return {
@@ -138,11 +282,11 @@ function EventModal({ defaultDate, members, onSave, onClose }: ModalProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm">
+      <div className="bg-white dark:bg-neutral-900 rounded-2xl shadow-xl w-full max-w-sm">
         {/* Glava */}
-        <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-neutral-100">
+        <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-neutral-100 dark:border-neutral-800">
           <span className="text-sm font-semibold text-neutral-900">Nov dogodek</span>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-neutral-100">
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800">
             <X size={16} className="text-neutral-500" />
           </button>
         </div>
@@ -157,7 +301,7 @@ function EventModal({ defaultDate, members, onSave, onClose }: ModalProps) {
               value={form.title}
               onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
               placeholder="npr. Zobozdravnik, Zavarovanje…"
-              className="w-full text-sm border border-neutral-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-brand-400"
+              className="input"
             />
           </div>
 
@@ -168,7 +312,7 @@ function EventModal({ defaultDate, members, onSave, onClose }: ModalProps) {
               type="date"
               value={form.date}
               onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))}
-              className="w-full text-sm border border-neutral-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-brand-400"
+              className="input"
             />
           </div>
 
@@ -228,7 +372,7 @@ function EventModal({ defaultDate, members, onSave, onClose }: ModalProps) {
               value={form.notes}
               onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
               placeholder="npr. 18 dni, Triglav avto…"
-              className="w-full text-sm border border-neutral-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-brand-400"
+              className="input"
             />
           </div>
 
@@ -268,6 +412,7 @@ export default function Calendar() {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [visibleTypes, setVisibleTypes] = useState<EventType[]>(DEFAULT_VISIBLE_TYPES);
+  const [schoolHolidayGroup, setSchoolHolidayGroup] = useState<SchoolHolidayGroup>("west");
 
   const year = viewDate.getFullYear();
   const month = viewDate.getMonth();
@@ -323,8 +468,19 @@ export default function Calendar() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
+    const stored = window.localStorage.getItem(SCHOOL_HOLIDAY_GROUP_STORAGE_KEY);
+    if (stored === "west" || stored === "east") setSchoolHolidayGroup(stored);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
     window.localStorage.setItem(CALENDAR_LAYERS_STORAGE_KEY, JSON.stringify(visibleTypes));
   }, [visibleTypes]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(SCHOOL_HOLIDAY_GROUP_STORAGE_KEY, schoolHolidayGroup);
+  }, [schoolHolidayGroup]);
 
   function prevMonth() { setViewDate(new Date(year, month - 1, 1)); setSelectedDate(null); }
   function nextMonth() { setViewDate(new Date(year, month + 1, 1)); setSelectedDate(null); }
@@ -332,7 +488,12 @@ export default function Calendar() {
   function toDateStr(day: number) {
     return `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
   }
-  const visibleEvents = events.filter((event) => visibleTypes.includes(event.type));
+  const calendarEvents = [
+    ...events,
+    ...workFreeDayEventsForYear(year, events),
+    ...schoolHolidayEventsForYear(year, schoolHolidayGroup, events),
+  ];
+  const visibleEvents = calendarEvents.filter((event) => visibleTypes.includes(event.type));
 
   function eventsOn(day: number) { return visibleEvents.filter((e) => e.date === toDateStr(day)); }
 
@@ -345,7 +506,7 @@ export default function Calendar() {
     );
 
     if (willShow && OPTIONAL_CALENDAR_TYPES.includes(type)) {
-      const matchingEvents = events
+      const matchingEvents = calendarEvents
         .filter((event) => event.type === type)
         .sort((a, b) => {
           const aPast = a.date < todayStr;
@@ -364,7 +525,7 @@ export default function Calendar() {
   }
 
   function typeCount(type: EventType) {
-    return events.filter((event) => event.type === type).length;
+    return calendarEvents.filter((event) => event.type === type).length;
   }
 
   async function addEvent(data: Omit<CalendarEvent, "id">) {
@@ -477,7 +638,7 @@ export default function Calendar() {
             );
           })}
         </div>
-        <div className="mt-4 rounded-lg border border-neutral-100 bg-neutral-50 p-3">
+        <div className="mt-4 rounded-lg border border-neutral-100 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-800 p-3">
           <div className="text-xs font-medium text-neutral-700 mb-2">Opcijsko</div>
           <div className="flex flex-wrap gap-2">
             {OPTIONAL_CALENDAR_TYPES.map((type) => {
@@ -499,10 +660,21 @@ export default function Calendar() {
               );
             })}
           </div>
+          <div className="mt-3 max-w-xs">
+            <label className="block text-[10px] uppercase tracking-wide text-neutral-400 mb-1">
+              Regija za zimske počitnice
+            </label>
+            <AppSelect
+              value={schoolHolidayGroup}
+              placeholder="Izberi regijo"
+              options={SCHOOL_HOLIDAY_GROUPS.map((group) => ({ value: group.value, label: group.label }))}
+              onChange={(value) => setSchoolHolidayGroup(value as SchoolHolidayGroup)}
+            />
+          </div>
         </div>
         <p className="text-[11px] text-neutral-400 mt-3">
           Šolske počitnice in dela prosti dnevi niso privzeto prikazani. Vklopi jih tukaj, če jih želiš videti v koledarju.
-          Če je ob oznaki številka 0, jih najprej dodaj v modulu Obveznosti.
+          Dela prosti dnevi in šolske počitnice se izračunajo za prikazano leto; izbrana regija vpliva na zimske počitnice.
         </p>
       </div>
 
@@ -514,13 +686,13 @@ export default function Calendar() {
           {/* Mreža */}
           <div className="card">
             <div className="flex items-center justify-between mb-4">
-              <button onClick={prevMonth} className="p-1.5 rounded-lg hover:bg-neutral-100 transition-colors">
+              <button onClick={prevMonth} className="p-1.5 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors">
                 <ChevronLeft size={16} className="text-neutral-500" />
               </button>
               <span className="text-sm font-semibold text-neutral-900">
                 {MONTHS_SL[month]} {year}
               </span>
-              <button onClick={nextMonth} className="p-1.5 rounded-lg hover:bg-neutral-100 transition-colors">
+              <button onClick={nextMonth} className="p-1.5 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors">
                 <ChevronRight size={16} className="text-neutral-500" />
               </button>
             </div>
@@ -558,7 +730,7 @@ export default function Calendar() {
                       isToday    ? "bg-brand-600" :
                       isSelected ? "bg-brand-50 ring-1 ring-brand-400" :
                       hasEvents  ? cellBg :
-                      "hover:bg-neutral-50"
+                      "hover:bg-neutral-50 dark:hover:bg-neutral-800"
                     )}
                   >
                     <span className={clsx(

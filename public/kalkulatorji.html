@@ -3,13 +3,35 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Moje finance — kalkulatorji</title>
+<title>LifeDesk — kalkulatorji</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script>
+(() => {
+  function readInitialTheme() {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      return params.get("theme") || localStorage.getItem("lifedesk-theme") || "light";
+    } catch (_) {
+      return "light";
+    }
+  }
+
+  function applyTheme(theme) {
+    document.documentElement.classList.toggle("dark", theme === "dark");
+  }
+
+  applyTheme(readInitialTheme());
+
+  window.addEventListener("message", (event) => {
+    if (event.data?.type === "SET_THEME") applyTheme(event.data.theme);
+  });
+})();
+</script>
 <style>
 /* ── RESET & VARS ─────────────────────────── */
 :root {
-  /* ── Moje finance design tokens ── */
+  /* ── LifeDesk design tokens ── */
   --bg:      #F8F9FA;
   --surface: #FFFFFF;
   --ink:     #2C2C2A;
@@ -19,7 +41,7 @@
   --border2: rgba(0,0,0,0.15);
   --serif:   'Inter', system-ui, sans-serif;
   --sans:    'Inter', system-ui, sans-serif;
-  /* Kategorije — usklajene z Moje finance */
+  /* Kategorije — usklajene z LifeDesk */
   --c-placa:        #185FA5;
   --c-davki:        #0F6E56;
   --c-druzina:      #6D28D9;
@@ -30,6 +52,17 @@
   /* Akcent barva */
   --accent:  #185FA5;
   --accent-bg: #EBF4FF;
+}
+
+:root.dark {
+  --bg:      #111110;
+  --surface: #1D1D1B;
+  --ink:     #F4F4F0;
+  --ink2:    #D4D3CC;
+  --ink3:    #A4A39A;
+  --border:  rgba(255,255,255,0.08);
+  --border2: rgba(255,255,255,0.16);
+  --accent-bg: rgba(24,95,165,0.18);
 }
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { scroll-behavior: smooth; }
@@ -78,7 +111,7 @@ nav {
 /* remove orphan wide-card rule — no longer needed */
 
 .dcard { background:var(--surface); padding:1.75rem; cursor:pointer; transition:background .15s; position:relative; display:flex; flex-direction:column; gap:0; }
-.dcard:hover { background:#FDFCF7; }
+.dcard:hover { background:var(--accent-bg); }
 .dcard-num { font-family:var(--serif); font-size:11px; font-style:italic; color:var(--ink3); margin-bottom:1.25rem; flex-shrink:0; }
 .dcard-title { font-size:15px; font-weight:600; line-height:1.2; margin-bottom:.45rem; }
 .dcard-desc { font-size:12px; color:var(--ink3); line-height:1.55; flex:1; margin-bottom:1rem; }
@@ -114,7 +147,7 @@ nav {
 
 .calc-list { display:grid; grid-template-columns:repeat(auto-fill,minmax(290px,1fr)); gap:1px; background:var(--border); border:1px solid var(--border); border-radius:16px; overflow:hidden; }
 .citem { background:var(--surface); padding:1.4rem 1.5rem; cursor:pointer; transition:background .15s; display:flex; flex-direction:column; gap:5px; position:relative; }
-.citem:hover { background:#FDFCF7; }
+.citem:hover { background:var(--accent-bg); }
 .citem::before { content:''; position:absolute; left:0; top:20%; bottom:20%; width:2px; border-radius:1px; opacity:0; transition:opacity .15s; background:var(--acc, var(--ink)); }
 .citem:hover::before { opacity:1; }
 .ci-top { display:flex; align-items:flex-start; justify-content:space-between; gap:8px; }
@@ -151,7 +184,7 @@ input[type=text], input[type=number], input[type=date], select, textarea {
   background:var(--surface); border:1px solid var(--border2); border-radius:8px;
   padding:0 13px; outline:none; transition:border-color .15s; -webkit-appearance:none; appearance:none;
 }
-input:focus, select:focus { border-color:var(--ink); background:#fff; }
+input:focus, select:focus { border-color:var(--ink); background:var(--surface); }
 .has-pfx input { padding-left:28px; }
 .has-sfx input { padding-right:36px; }
 
@@ -195,6 +228,9 @@ select {
 .warn-amber { background:#FBF4E5; border:1px solid rgba(160,104,32,.2); color:#7A4E10; }
 .warn-red   { background:#FDF0ED; border:1px solid rgba(180,60,40,.2); color:#8A2A1A; }
 .warn-green { background:#EAF3EE; border:1px solid rgba(46,107,70,.2); color:#1A5A34; }
+.dark .warn-amber { background:rgba(160,104,32,.16); border-color:rgba(236,177,81,.35); color:#F2C56B; }
+.dark .warn-red   { background:rgba(180,60,40,.16); border-color:rgba(239,112,86,.35); color:#F08B73; }
+.dark .warn-green { background:rgba(46,107,70,.18); border-color:rgba(74,170,109,.35); color:#74D095; }
 
 .disclaimer { font-size:11px; color:var(--ink3); line-height:1.6; padding-top:1rem; border-top:1px solid var(--border); margin-top:.5rem; }
 
@@ -208,7 +244,7 @@ footer { border-top:1px solid var(--border); padding:1.5rem 2rem; max-width:960p
 .flinks { display:flex; gap:1.25rem; }
 .flinks a { font-size:11px; color:var(--ink3); cursor:pointer; }
 
-/* ── Moje finance iframe overrides ── */
+/* ── LifeDesk iframe overrides ── */
 body { padding-top: 0 !important; }
 .pg-calc-inner { padding-top: 1rem; }
 </style>
@@ -216,7 +252,7 @@ body { padding-top: 0 !important; }
 <body>
 
 <nav>
-  <div class="logo" onclick="goHome()">Moje finance</div>
+  <div class="logo" onclick="goHome()">LifeDesk</div>
   <div class="breadcrumb" id="bc"></div>
 </nav>
 
@@ -253,7 +289,7 @@ body { padding-top: 0 !important; }
 <div id="pg-calc" class="pg"></div>
 
 <footer>
-  <div class="flogo">Moje finance</div>
+  <div class="flogo">LifeDesk</div>
   <div class="fnote">Informativni izračuni — niso pravni ali finančni nasvet.</div>
   <div class="flinks"><a>O projektu</a><a>Zasebnost</a><a>Kontakt</a></div>
 </footer>

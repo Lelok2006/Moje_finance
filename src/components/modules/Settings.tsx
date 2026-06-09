@@ -236,7 +236,7 @@ export default function Settings() {
                 </button>
 
                 {isOpen && (
-                  <div className="ml-3 border-l border-neutral-100 pl-3 mb-2">
+                  <div className="ml-3 border-l border-neutral-100 dark:border-neutral-800 pl-3 mb-2">
                     <p className="text-[10px] text-neutral-400 mb-2">{TYPE_HINT[type]}</p>
                     {parents.map((parent) => {
                       const children = categories.filter((c) => c.parentCode === parent.code);
@@ -382,7 +382,7 @@ export default function Settings() {
             {HOUSEHOLD_FIELDS.map((field) => (
               <div
                 key={field.key}
-                className="flex items-center justify-between py-2 border-b border-neutral-50 last:border-0 gap-4"
+                className="flex items-center justify-between py-2 border-b border-neutral-50 dark:border-neutral-800 last:border-0 gap-4"
               >
                 <span className="text-xs text-neutral-600 flex-shrink-0">{field.label}</span>
                 {editing && field.editable ? (
@@ -390,7 +390,7 @@ export default function Settings() {
                     type="text"
                     value={draft[field.key]}
                     onChange={(e) => setDraft((d) => ({ ...d, [field.key]: e.target.value }))}
-                    className="text-xs text-neutral-800 font-medium text-right bg-neutral-50 border border-neutral-200 rounded-md px-2 py-1 focus:outline-none focus:ring-1 focus:ring-brand-400 w-36"
+                    className="text-xs text-neutral-800 dark:text-neutral-100 font-medium text-right bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-md px-2 py-1 focus:outline-none focus:ring-1 focus:ring-brand-400 w-36"
                   />
                 ) : (
                   <span className="text-xs text-neutral-500 font-medium">{household[field.key]}</span>
@@ -403,7 +403,7 @@ export default function Settings() {
           <div className="card">
             <div className="card-title">Obvestila</div>
             {NOTIFS.map((n) => (
-              <div key={n.id} className="flex items-center justify-between py-2.5 border-b border-neutral-50 last:border-0">
+              <div key={n.id} className="flex items-center justify-between py-2.5 border-b border-neutral-50 dark:border-neutral-800 last:border-0">
                 <div>
                   <div className="text-xs font-medium text-neutral-700">{n.label}</div>
                   <div className="text-[10px] text-neutral-400 mt-0.5">{n.desc}</div>
@@ -412,7 +412,7 @@ export default function Settings() {
                   onClick={() => toggle(n.id)}
                   className={clsx(
                     "w-9 h-5 rounded-full relative transition-colors flex-shrink-0",
-                    toggles[n.id] ? "bg-income-500" : "bg-neutral-200"
+                    toggles[n.id] ? "bg-income-500" : "bg-neutral-200 dark:bg-neutral-700"
                   )}
                   aria-label={`Preklopi ${n.label}`}
                 >
@@ -446,7 +446,7 @@ export default function Settings() {
               </button>
             ) : (
               <div className="space-y-2">
-                <div className="flex items-center gap-2 bg-neutral-50 border border-neutral-200 rounded-lg px-3 py-2">
+                <div className="flex items-center gap-2 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-lg px-3 py-2">
                   <span className="text-[11px] text-neutral-500 flex-1 truncate">{inviteLink}</span>
                   <button onClick={copyLink} className="flex-shrink-0 text-brand-600 hover:text-brand-700">
                     {copied ? <Check size={14} /> : <Copy size={14} />}
@@ -471,7 +471,7 @@ export default function Settings() {
                   key={plan.name}
                   className={clsx(
                     "rounded-lg border px-3 py-3",
-                    plan.highlighted ? "border-brand-200 bg-brand-50/60" : "border-neutral-100 bg-white"
+                    plan.highlighted ? "border-brand-200 dark:border-brand-700 bg-brand-50/60 dark:bg-brand-500/10" : "border-neutral-100 dark:border-neutral-800 bg-white dark:bg-neutral-900"
                   )}
                 >
                   <div className="flex items-start justify-between gap-3">

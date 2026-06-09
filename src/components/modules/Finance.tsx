@@ -147,14 +147,14 @@ function TransactionModal({
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="relative bg-white w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl shadow-xl max-h-[92vh] flex flex-col">
+      <div className="relative bg-white dark:bg-neutral-900 w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl shadow-xl max-h-[92vh] flex flex-col">
 
         {/* Header */}
-        <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-neutral-100">
+        <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-neutral-100 dark:border-neutral-800">
           <div className="text-sm font-semibold text-neutral-900">
             {isEditing ? "Uredi transakcijo" : "Nova transakcija"}
           </div>
-          <button onClick={onClose} className="p-1 rounded-lg hover:bg-neutral-100">
+          <button onClick={onClose} className="p-1 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800">
             <X size={16} className="text-neutral-500" />
           </button>
         </div>
@@ -162,7 +162,7 @@ function TransactionModal({
         <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
 
           {/* Tip */}
-          <div className="flex gap-1 p-1 bg-neutral-50 rounded-lg">
+          <div className="flex gap-1 p-1 bg-neutral-50 dark:bg-neutral-800 rounded-lg">
             {(["expense", "income"] as const).map((t) => (
               <button
                 key={t}
@@ -262,7 +262,7 @@ function TransactionModal({
         </div>
 
         {/* Gumbi */}
-        <div className="px-5 py-4 border-t border-neutral-100 flex gap-2">
+        <div className="px-5 py-4 border-t border-neutral-100 dark:border-neutral-800 flex gap-2">
           {isEditing && (
             <button
               onClick={handleDelete}
@@ -559,7 +559,7 @@ export default function Finance() {
             const isSaving = budgetSavingCode === item.category.code;
 
             return (
-              <div key={item.category.code} className="border border-neutral-100 rounded-lg p-3 space-y-3">
+              <div key={item.category.code} className="border border-neutral-100 dark:border-neutral-800 rounded-lg p-3 space-y-3">
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <div className="flex items-center gap-2">
@@ -625,7 +625,7 @@ export default function Finance() {
       <div className="card">
         <div className="card-title">
           <span>Transakcije — {monthLabel(year, month)}</span>
-          <div className="flex gap-1 p-1 bg-neutral-50 rounded-lg">
+          <div className="flex gap-1 p-1 bg-neutral-50 dark:bg-neutral-800 rounded-lg">
             {(["vse", "prihodki", "odhodki"] as const).map((f) => (
               <button
                 key={f}
@@ -633,8 +633,8 @@ export default function Finance() {
                 className={clsx(
                   "text-xs px-2.5 py-1 rounded-md transition-all",
                   filter === f
-                    ? "bg-white text-neutral-800 font-medium shadow-sm"
-                    : "text-neutral-500 hover:text-neutral-700"
+                    ? "bg-white dark:bg-neutral-700 text-neutral-800 dark:text-neutral-100 font-medium shadow-sm"
+                    : "text-neutral-500 hover:text-neutral-700 dark:text-neutral-300 dark:hover:text-neutral-100"
                 )}
               >
                 {f.charAt(0).toUpperCase() + f.slice(1)}
@@ -660,7 +660,7 @@ export default function Finance() {
             <div className="hidden sm:block overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-neutral-100">
+                  <tr className="border-b border-neutral-100 dark:border-neutral-800">
                     <th className="text-left text-xs text-neutral-400 font-medium pb-2 w-8" />
                     <th className="text-left text-xs text-neutral-400 font-medium pb-2">Opis</th>
                     <th className="text-left text-xs text-neutral-400 font-medium pb-2">Datum</th>
@@ -674,7 +674,7 @@ export default function Finance() {
                   {filtered.map((tx) => {
                     const cat = getCategory(tx.categoryCode);
                     return (
-                      <tr key={tx.id} className="border-b border-neutral-50 hover:bg-neutral-50/50 transition-colors">
+                      <tr key={tx.id} className="border-b border-neutral-50 dark:border-neutral-800 hover:bg-neutral-50/50 dark:hover:bg-neutral-800/60 transition-colors">
                         <td className="py-2.5 pr-2">
                           <div className={clsx(
                             "w-7 h-7 rounded-lg flex items-center justify-center text-xs",

@@ -161,10 +161,10 @@ function DocumentModal({
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
 
       {/* Panel */}
-      <div className="relative bg-white w-full sm:max-w-2xl rounded-t-2xl sm:rounded-2xl shadow-xl max-h-[92vh] flex flex-col">
+      <div className="relative bg-white dark:bg-neutral-900 w-full sm:max-w-2xl rounded-t-2xl sm:rounded-2xl shadow-xl max-h-[92vh] flex flex-col">
 
         {/* Header */}
-        <div className="flex items-start justify-between px-5 pt-5 pb-3 border-b border-neutral-100">
+        <div className="flex items-start justify-between px-5 pt-5 pb-3 border-b border-neutral-100 dark:border-neutral-800">
           <div className="flex-1 min-w-0 pr-3">
             <div className="text-sm font-semibold text-neutral-900 truncate">{doc.name}</div>
             <div className="flex items-center gap-2 mt-1">
@@ -175,7 +175,7 @@ function DocumentModal({
               <span className="text-[10px] text-neutral-400">{PAYMENT_LABEL[paymentStatus]}</span>
             </div>
           </div>
-          <button onClick={onClose} className="p-1 rounded-lg hover:bg-neutral-100 transition-colors flex-shrink-0">
+          <button onClick={onClose} className="p-1 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors flex-shrink-0">
             <X size={16} className="text-neutral-500" />
           </button>
         </div>
@@ -256,7 +256,7 @@ function DocumentModal({
             {doc.ocrRawText && (
               <div>
                 <div className="text-[10px] text-neutral-500 mb-1">Prebrano besedilo</div>
-                <div className="bg-neutral-50 border border-neutral-100 rounded-lg p-3 text-[11px] text-neutral-600 leading-relaxed max-h-32 overflow-y-auto whitespace-pre-wrap">
+                <div className="bg-neutral-50 dark:bg-neutral-800 border border-neutral-100 dark:border-neutral-700 rounded-lg p-3 text-[11px] text-neutral-600 leading-relaxed max-h-32 overflow-y-auto whitespace-pre-wrap">
                   {doc.ocrRawText}
                 </div>
               </div>
@@ -265,7 +265,7 @@ function DocumentModal({
 
           {/* Desno: predogled */}
           {doc.filePath && (
-            <div className="sm:w-60 border-t sm:border-t-0 sm:border-l border-neutral-100 bg-neutral-50/60 flex flex-col">
+            <div className="sm:w-60 border-t sm:border-t-0 sm:border-l border-neutral-100 dark:border-neutral-800 bg-neutral-50/60 dark:bg-neutral-800/60 flex flex-col">
               <div className="text-[10px] text-neutral-400 px-3 pt-3 pb-1 font-medium">Predogled</div>
               <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-2">
                 {previewUrl ? (
@@ -291,7 +291,7 @@ function DocumentModal({
         </div>
 
         {/* Gumbi */}
-        <div className="px-5 py-4 border-t border-neutral-100 space-y-2">
+        <div className="px-5 py-4 border-t border-neutral-100 dark:border-neutral-800 space-y-2">
           {/* Sporočilo o uspešnem shranjevanju */}
           {saved && !isDirty && (
             <p className="text-xs text-income-700 bg-income-50 border border-income-200 rounded-lg px-3 py-2 flex items-center gap-2">
@@ -595,7 +595,7 @@ export default function Documents() {
               return (
                 <button
                   key={doc.id}
-                  className="bg-white rounded-lg border border-neutral-100 p-3 text-left hover:border-neutral-200 transition-colors"
+                  className="bg-white dark:bg-neutral-900 rounded-lg border border-neutral-100 dark:border-neutral-800 p-3 text-left hover:border-neutral-200 dark:hover:border-neutral-700 transition-colors"
                   onClick={() => openDoc(doc)}
                 >
                   <div className="flex items-start justify-between gap-3">
@@ -638,7 +638,7 @@ export default function Documents() {
             return (
               <div
                 key={doc.id}
-                className="bg-white rounded-lg border border-neutral-100 p-3 mb-2 last:mb-0 cursor-pointer hover:border-neutral-200 transition-colors"
+                className="bg-white dark:bg-neutral-900 rounded-lg border border-neutral-100 dark:border-neutral-800 p-3 mb-2 last:mb-0 cursor-pointer hover:border-neutral-200 dark:hover:border-neutral-700 transition-colors"
                 onClick={() => openDoc(doc)}
               >
                 <div className="flex items-start justify-between gap-3">
@@ -711,9 +711,9 @@ export default function Documents() {
                 key={doc.id}
                 onClick={() => openDoc(doc)}
                 className={clsx(
-                  "flex items-center gap-3 p-3 rounded-lg border border-neutral-100",
-                  "hover:border-neutral-200 cursor-pointer transition-colors",
-                  doc.expiryDate && daysUntilDoc(doc) < 60 ? "border-warn-500/40 bg-warn-50/20" : ""
+                  "flex items-center gap-3 p-3 rounded-lg border border-neutral-100 dark:border-neutral-800",
+                  "hover:border-neutral-200 dark:hover:border-neutral-700 cursor-pointer transition-colors",
+                  doc.expiryDate && daysUntilDoc(doc) < 60 ? "border-warn-500/40 bg-warn-50/20 dark:bg-warn-500/10" : ""
                 )}
               >
                 {doc.filePath ? (

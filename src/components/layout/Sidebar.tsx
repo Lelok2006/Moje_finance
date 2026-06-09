@@ -61,6 +61,7 @@ function NavContent({ active, onNavigate }: NavContentProps) {
     setDark(next);
     document.documentElement.classList.toggle("dark", next);
     try { localStorage.setItem("lifedesk-theme", next ? "dark" : "light"); } catch (_) {}
+    window.dispatchEvent(new CustomEvent("lifedesk-theme-change", { detail: next ? "dark" : "light" }));
   }
 
   useEffect(() => {
@@ -283,11 +284,11 @@ export default function Sidebar({ active, onChange }: SidebarProps) {
           <div className="w-7 h-7 bg-brand-600 rounded-lg flex items-center justify-center">
             <Home size={14} className="text-white" />
           </div>
-          <span className="text-sm font-semibold text-neutral-900">LifeDesk</span>
+          <span className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">LifeDesk</span>
         </button>
         <button
           onClick={() => setMobileOpen(true)}
-          className="p-2 rounded-lg hover:bg-neutral-100"
+          className="p-2 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800"
           aria-label="Odpri meni"
         >
           <Menu size={20} className="text-neutral-600" />
@@ -315,7 +316,7 @@ export default function Sidebar({ active, onChange }: SidebarProps) {
             <div className="w-7 h-7 bg-brand-600 rounded-lg flex items-center justify-center">
               <Home size={14} className="text-white" />
             </div>
-            <span className="text-sm font-semibold text-neutral-900">LifeDesk</span>
+            <span className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">LifeDesk</span>
           </button>
           <button onClick={() => setMobileOpen(false)} className="p-1.5 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800">
             <X size={18} className="text-neutral-500" />

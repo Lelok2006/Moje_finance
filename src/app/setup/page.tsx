@@ -39,7 +39,7 @@ export default function SetupPage() {
   }
 
   return (
-    <div className="min-h-screen bg-neutral-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950 flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
 
         {/* Logo */}
@@ -53,18 +53,18 @@ export default function SetupPage() {
           </div>
         </div>
 
-        <div className="bg-white border border-neutral-100 rounded-2xl shadow-sm p-6 space-y-5">
+        <div className="bg-white dark:bg-neutral-900 border border-neutral-100 dark:border-neutral-800 rounded-2xl shadow-sm p-6 space-y-5">
 
           {/* Koraki */}
           <div className="flex items-center gap-2 mb-2">
             {[1, 2].map((s) => (
               <div key={s} className="flex items-center gap-2">
                 <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold ${
-                  step >= s ? "bg-brand-600 text-white" : "bg-neutral-100 text-neutral-400"
+                  step >= s ? "bg-brand-600 text-white" : "bg-neutral-100 dark:bg-neutral-800 text-neutral-400"
                 }`}>
                   {s}
                 </div>
-                {s < 2 && <div className={`h-px w-8 ${step > s ? "bg-brand-300" : "bg-neutral-100"}`} />}
+                {s < 2 && <div className={`h-px w-8 ${step > s ? "bg-brand-300" : "bg-neutral-100 dark:bg-neutral-800"}`} />}
               </div>
             ))}
             <span className="text-xs text-neutral-400 ml-1">

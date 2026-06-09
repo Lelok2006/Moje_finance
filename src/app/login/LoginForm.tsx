@@ -92,7 +92,7 @@ export default function LoginForm() {
 
   if (sent) {
     return (
-      <div className="min-h-screen bg-neutral-50 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950 flex items-center justify-center p-4">
         <div className="w-full max-w-sm text-center">
           <div className="w-14 h-14 bg-income-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
             <span className="text-2xl">📬</span>
@@ -115,7 +115,7 @@ export default function LoginForm() {
   }
 
   return (
-    <div className="min-h-screen bg-neutral-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950 flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
 
         <div className="flex items-center justify-center gap-2.5 mb-8">
@@ -128,8 +128,8 @@ export default function LoginForm() {
           </div>
         </div>
 
-        <div className="bg-white border border-neutral-100 rounded-2xl shadow-sm p-6">
-          <div className="mb-4 rounded-lg border border-brand-100 bg-brand-50/60 px-3 py-3">
+        <div className="bg-white dark:bg-neutral-900 border border-neutral-100 dark:border-neutral-800 rounded-2xl shadow-sm p-6">
+          <div className="mb-4 rounded-lg border border-brand-100 dark:border-brand-800 bg-brand-50/60 dark:bg-brand-500/10 px-3 py-3">
             <div className="text-xs font-semibold text-brand-700 mb-1">Kako testirati</div>
             <p className="text-[11px] text-neutral-600 leading-relaxed">
               Če še nimaš dostopa, izberi <strong>Registracija</strong>, vnesi svoj e-naslov in geslo,
@@ -138,15 +138,15 @@ export default function LoginForm() {
             </p>
           </div>
 
-          <div className="flex gap-1 p-1 bg-neutral-50 rounded-xl mb-6">
+          <div className="flex gap-1 p-1 bg-neutral-50 dark:bg-neutral-800 rounded-xl mb-6">
             {(["login", "register"] as const).map((m) => (
               <button
                 key={m}
                 onClick={() => { setMode(m); setError(null); }}
                 className={`flex-1 text-sm py-1.5 rounded-lg font-medium transition-all ${
                   mode === m
-                    ? "bg-white text-neutral-800 shadow-sm"
-                    : "text-neutral-400 hover:text-neutral-600"
+                    ? "bg-white dark:bg-neutral-700 text-neutral-800 dark:text-neutral-100 shadow-sm"
+                    : "text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200"
                 }`}
               >
                 {m === "login" ? "Vpis" : "Registracija"}
