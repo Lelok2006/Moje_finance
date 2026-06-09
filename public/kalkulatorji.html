@@ -297,16 +297,16 @@ body { padding-top: 0 !important; }
 <script>
 // ══════════════════════════════════════════════════════════════════
 // CONFIG — vse zakonske vrednosti na enem mestu
-// Zadnja posodobitev: april 2026
+// Zadnja posodobitev: 9. junij 2026
 // ══════════════════════════════════════════════════════════════════
 const CFG = {
-  // Prispevki delavca (ZDoh-2, ZPIZ-2, ZZVZZ)
+  // Prispevki delavca (ZDoh-2, ZPIZ-2, ZZVZZ, ZDOsk-1)
   przDelavec: { piz:0.1550, zz:0.0636, starsevstvo:0.0010, brezposelnost:0.0014, oskrbo:0.0100 },
-  // Prispevki delodajalca
+  // Prispevki delodajalca, vključno s prispevkom za dolgotrajno oskrbo od 1. 7. 2025
   przDelod:   { piz:0.0885, zz:0.0656, starsevstvo:0.0010, brezposelnost:0.0006, nezgoda:0.0053, oskrbo:0.0100 },
   // OZP — Obvezni zdravstveni prispevek (ZZVZZ, od 1.3.2026)
   ozp: 39.36,                      // fiksni mesečni znesek, odtegne se od bruto
-  // Dohodninshi razredi 2026 (ZDoh-2, 122. člen; Ur. l. RS, 104/25)
+  // Dohodninski razredi 2026 (ZDoh-2, 122. člen; FURS, 15. 12. 2025)
   dohodnina: [
     { do:9721.43,   stopnja:0.16, od:0 },
     { do:28592.44,  stopnja:0.26, od:9721.43 },
@@ -315,15 +315,18 @@ const CFG = {
     { do:Infinity,  stopnja:0.50, od:82346.23 },
   ],
   // Olajšave 2026
-  splosnaOlajsava: 5551.93,        // osnovna splošna olajšava (Ur. l. RS, 104/25)
+  splosnaOlajsava: 5551.93,        // osnovna splošna olajšava
+  splosnaOlajsavaLimit: 17766.18,  // meja za dodatno splošno olajšavo
+  splosnaOlajsavaExtra: 20832.39,  // FURS formula: 5.551,93 + (20.832,39 - 1,17259 × dohodek)
+  splosnaOlajsavaCoef: 1.17259,
   olajsavaOtrok1:  2995.83,        // 1. otrok (letno)
   olajsavaOtrok2:  3256.77,        // 2. otrok — dodatek za 2. otroka
   olajsavaOtrok3:  5432.02,        // 3.+ otrok — dodatek za vsakega nadaljnjega
-  olajsavaStudent: 3500,
+  olajsavaStudent: 3886.35,
   invOlajsava:     0,              // investicijska olajšava (po potrebi)
   // Minimalna in povprečna plača 2026
   minPlaca:        1481.88,        // bruto (ZMinP, velja od 1.1.2026)
-  povpPlaca:       2395,           // SURS 2025 bruto povprečje
+  povpPlaca:       2638.06,        // SURS H285S, 2026M03, bruto povprečje zadnjih treh mesecev
   // DPN, DDV
   dpn:             0.02,
   ddv:             0.22,
@@ -333,19 +336,18 @@ const CFG = {
   odpravninaMinLeta: 2,
   // Pokojninska osnova za upokojitev
   upokojitvePokojnina: 2,          // 2× povprečna za odpravnino ob upokojitvi
-  // Otroški dodatek 2026 — razredi (neto dohodek/osebo)
+  // Otroški dodatek 2026 — razredi (neto dohodek/osebo), vloge od 1. 2. 2026
   otroškiRazredi: [
-    { do:232.31,   odstotek:100 },  // 1. razred — 100% od osnove
-    { do:326.27,   odstotek:90  },
-    { do:408.26,   odstotek:75  },
-    { do:490.26,   odstotek:55  },
-    { do:580.25,   odstotek:35  },
-    { do:688.74,   odstotek:15  },
-    { do:Infinity, odstotek:0   },
+    { do:241.49,  zneski:[147.69,162.45,177.24] },
+    { do:402.50,  zneski:[126.26,139.58,152.82] },
+    { do:483.01,  zneski:[96.24,107.56,118.85] },
+    { do:563.50,  zneski:[75.91,86.61,97.51] },
+    { do:711.12,  zneski:[62.06,72.42,82.72] },
+    { do:858.67,  zneski:[39.32,49.21,59.05] },
+    { do:1100.20, zneski:[29.52,39.32,49.21] },
+    { do:1328.28, zneski:[25.70,35.53,45.35] },
+    { do:Infinity,zneski:[0,0,0] },
   ],
-  otroškiOsnova1:  31.64,   // mesečna osnova za 1. otroka
-  otroškiOsnova2:  63.29,
-  otroškiOsnova3:  94.93,
   // Nadomestilo za brezposelnost (ZUTD)
   brezposOsnovaPct: 0.80,   // 80% zadnje plače, 1. 3 mesece
   brezposOsnovaPct2: 0.60,  // 60% nato
@@ -361,13 +363,15 @@ const CFG = {
   spPrizvanihMax: 100000,   // meja za normiranec
   // Vrtec subvencija — razredi
   vrtecRazredi: [
-    {do:390, pct:0},   // 1. razred — brezplačno
-    {do:530, pct:10},
-    {do:670, pct:20},
-    {do:840, pct:30},
-    {do:1000,pct:35},
-    {do:1250,pct:43},
-    {do:Infinity,pct:53}
+    {do:241.49, pct:0},
+    {do:402.50, pct:10},
+    {do:483.01, pct:20},
+    {do:563.50, pct:30},
+    {do:711.12, pct:35},
+    {do:858.67, pct:43},
+    {do:1100.20,pct:53},
+    {do:1328.28,pct:66},
+    {do:Infinity,pct:77}
   ],
   vrtecCenaM: 490,   // povprečna cena prvega starostnega obdobja
   vrtecCena2: 400,   // drugega
@@ -380,6 +384,7 @@ const f = n => Math.round(n).toLocaleString('sl-SI') + ' €';
 const fp = n => n.toFixed(2).replace('.',',') + ' €';
 const pct = n => (n*100).toFixed(1).replace('.',',') + '%';
 function parseAmt(str){ return parseFloat((str||'').replace(/\./g,'').replace(',','.')) || 0; }
+function sumRates(rates){ return Object.values(rates).reduce((sum, rate)=>sum+rate, 0); }
 function fmtInput(el){
   const raw=el.value.replace(/[^\d]/g,''); const n=parseInt(raw)||0;
   const pos=el.selectionStart, prev=el.value.length;
@@ -394,6 +399,12 @@ function calcDohodnina(letniDohodek, olajsave){
     davek += (Math.min(osnova,r.do) - r.od) * r.stopnja;
   }
   return Math.max(0,davek);
+}
+function splosnaOlajsavaZaDohodek(letniDohodek){
+  if(letniDohodek<=CFG.splosnaOlajsavaLimit){
+    return CFG.splosnaOlajsava + Math.max(0, CFG.splosnaOlajsavaExtra - CFG.splosnaOlajsavaCoef * letniDohodek);
+  }
+  return CFG.splosnaOlajsava;
 }
 function calcSodnaTaksa(val){
   for(const r of CFG.sodnaTaksa) if(val<=r.do) return r.e;
@@ -410,11 +421,11 @@ function calcNotary(val){
   return {net:base, total:base*(1+CFG.ddv)};
 }
 function brutoNeto(bruto){
-  const przD=bruto*(CFG.przDelavec.piz+CFG.przDelavec.zz+CFG.przDelavec.starsevstvo+CFG.przDelavec.brezposelnost+CFG.przDelavec.oskrbo);
+  const przD=bruto*sumRates(CFG.przDelavec);
   const ozp=CFG.ozp;
   const davOsnova=bruto-przD-ozp;
   const letni=davOsnova*12;
-  const davek=calcDohodnina(letni, CFG.splosnaOlajsava)/12;
+  const davek=calcDohodnina(letni, splosnaOlajsavaZaDohodek(letni))/12;
   const neto=bruto-przD-ozp-davek;
   return {przD, ozp, davek, neto};
 }
@@ -527,14 +538,20 @@ CALCS['bruto-neto'] = {
         const prevoz=parseAmt(document.getElementById('bn-prevoz').value);
         const malica=parseAmt(document.getElementById('bn-malica').value);
         if(!bruto){ document.getElementById('bn-neto').textContent='—'; return; }
-        const przD=bruto*(CFG.przDelavec.piz+CFG.przDelavec.zz+CFG.przDelavec.starsevstvo+CFG.przDelavec.brezposelnost+CFG.przDelavec.oskrbo);
+        const przDPiz=bruto*CFG.przDelavec.piz;
+        const przDzz=bruto*CFG.przDelavec.zz;
+        const przDStarsevstvo=bruto*CFG.przDelavec.starsevstvo;
+        const przDBrezposelnost=bruto*CFG.przDelavec.brezposelnost;
+        const przDOskrba=bruto*CFG.przDelavec.oskrbo;
+        const przD=przDPiz+przDzz+przDStarsevstvo+przDBrezposelnost+przDOskrba;
+        const przDelod=bruto*sumRates(CFG.przDelod);
         const ozp=CFG.ozp;
+        const letniDohodek=(bruto-przD-ozp)*12;
         // Olajšave
-        let olajsave=CFG.splosnaOlajsava;
+        let olajsave=splosnaOlajsavaZaDohodek(letniDohodek);
         if(this.otroci>=1) olajsave+=CFG.olajsavaOtrok1;
         if(this.otroci>=2) olajsave+=CFG.olajsavaOtrok2;
         if(this.otroci>=3) olajsave+=CFG.olajsavaOtrok3;
-        const letniDohodek=(bruto-przD-ozp)*12;
         const letniDavek=calcDohodnina(letniDohodek, olajsave);
         const mesecniDavek=letniDavek/12;
         const neto=bruto-przD-ozp-mesecniDavek+prevoz+malica;
@@ -543,13 +560,19 @@ CALCS['bruto-neto'] = {
         document.getElementById('bn-sub').innerHTML=`Efektivna stopnja obremenitve: <strong>${efRate} %</strong>`;
         document.getElementById('bn-bdown').innerHTML=`
           <div class="brow"><div class="bl">Bruto plača</div><div class="br">${f(bruto)}</div></div>
-          <div class="brow"><div class="bl">Prispevki delavca (23,1 %)</div><div class="br muted">− ${f(przD)}</div></div>
+          <div class="brow"><div class="bl">Prispevki delavca skupaj (${pct(sumRates(CFG.przDelavec))})</div><div class="br muted">− ${f(przD)}</div></div>
+          <div class="brow"><div class="bl">PIZ delavec (15,5 %)</div><div class="br muted">− ${f(przDPiz)}</div></div>
+          <div class="brow"><div class="bl">Zdravstveno zavarovanje delavec (6,36 %)</div><div class="br muted">− ${f(przDzz)}</div></div>
+          <div class="brow"><div class="bl">Starševsko varstvo + brezposelnost</div><div class="br muted">− ${f(przDStarsevstvo+przDBrezposelnost)}</div></div>
+          <div class="brow"><div class="bl">Dolgotrajna oskrba delavec (1 %)</div><div class="br muted">− ${f(przDOskrba)}</div></div>
           <div class="brow"><div class="bl">OZP — obvezni zdravstveni prispevek</div><div class="br muted">− ${fp(ozp)}</div></div>
           <div class="brow"><div class="bl">Akontacija dohodnine</div><div class="br muted">− ${f(mesecniDavek)}</div></div>
           ${prevoz>0?`<div class="brow"><div class="bl">Prevoz (neobdavčeno)</div><div class="br">${f(prevoz)}</div></div>`:''}
           ${malica>0?`<div class="brow"><div class="bl">Malica (neobdavčeno)</div><div class="br">${f(malica)}</div></div>`:''}
           <div class="brow total"><div class="bl" style="font-weight:600">Neto plača</div><div class="br acc">${f(neto)}</div></div>
-          <div class="brow"><div class="bl">Strošek delodajalca (skupaj)</div><div class="br muted">${f(bruto*(1+0.1710))}</div></div>`;
+          <div class="brow"><div class="bl">Prispevki delodajalca skupaj (${pct(sumRates(CFG.przDelod))})</div><div class="br muted">${f(przDelod)}</div></div>
+          <div class="brow"><div class="bl">od tega dolgotrajna oskrba delodajalec (1 %)</div><div class="br muted">${f(bruto*CFG.przDelod.oskrbo)}</div></div>
+          <div class="brow"><div class="bl">Strošek delodajalca (skupaj)</div><div class="br muted">${f(bruto+przDelod)}</div></div>`;
       }
     };
     BN.calc();
@@ -634,14 +657,15 @@ CALCS['pogodbe'] = {
         const skupajStrosek=parseAmt(document.getElementById('pg-strosek').value);
         const spStroški=parseAmt(document.getElementById('pg-stroški').value);
         // Redna zaposlitev
-        const przdBruto=skupajStrosek/(1+0.1710); // bruto
+        const przdBruto=skupajStrosek/(1+sumRates(CFG.przDelod)); // bruto
         const rednaRes=brutoNeto(przdBruto);
         // S.P. (normiranec)
         const prihodek=skupajStrosek;
         const spPrzBase=CFG.minPlaca; // prispevki s.p. temeljijo na minimalni osnovi
         const spPrz=spPrzBase*(CFG.przDelavec.piz+CFG.przDelavec.zz+0.0053+CFG.przDelavec.oskrbo+CFG.przDelod.oskrbo)*12/12;
         const spDavOsnova=Math.max(0,prihodek-spStroški-spPrz*1);
-        const spDavek=calcDohodnina(spDavOsnova*12,CFG.splosnaOlajsava)/12;
+        const spLetni=spDavOsnova*12;
+        const spDavek=calcDohodnina(spLetni,splosnaOlajsavaZaDohodek(spLetni))/12;
         const spNeto=prihodek-spPrz-spDavek-spStroški;
         document.getElementById('pg-bdown').innerHTML=`
           <div class="brow"><div class="bl" style="font-weight:600">Skupni strošek delodajalca</div><div class="br">${f(skupajStrosek)}</div></div>
@@ -844,9 +868,9 @@ CALCS['dohodnina'] = {
         const placa=parseAmt(document.getElementById('doh-placa').value);
         const najemnina=parseAmt(document.getElementById('doh-najemnina').value);
         const drugi=parseAmt(document.getElementById('doh-drugi').value);
-        const przD=placa*0.231;
+        const przD=placa*sumRates(CFG.przDelavec);
         const letniDohodek=(placa-przD)+najemnina*(1-0.10)+drugi;
-        let olajsave=CFG.splosnaOlajsava;
+        let olajsave=splosnaOlajsavaZaDohodek(letniDohodek);
         if(this.otr>=1) olajsave+=CFG.olajsavaOtrok1;
         if(this.otr>=2) olajsave+=CFG.olajsavaOtrok2;
         if(this.otr>=3) olajsave+=CFG.olajsavaOtrok3;
@@ -890,14 +914,15 @@ CALCS['dohodnina-st'] = {
         const d=parseAmt(document.getElementById('st-dohodek').value);
         const drugi=parseAmt(document.getElementById('st-drugi').value);
         const skupaj=d+drugi;
-        const olajsave=CFG.splosnaOlajsava+CFG.olajsavaStudent;
+        const splosna=splosnaOlajsavaZaDohodek(skupaj);
+        const olajsave=splosna+CFG.olajsavaStudent;
         const davek=calcDohodnina(skupaj,olajsave);
         document.getElementById('st-res').textContent=f(davek);
         document.getElementById('st-sub').innerHTML=davek===0?'Dohodek pod pragom dohodnine':'Efektivna stopnja: '+pct(davek/skupaj);
         document.getElementById('st-bdown').innerHTML=`
           <div class="brow"><div class="bl">Skupni letni dohodek</div><div class="br">${f(skupaj)}</div></div>
-          <div class="brow"><div class="bl">Splošna olajšava</div><div class="br muted">− ${f(CFG.splosnaOlajsava)}</div></div>
-          <div class="brow"><div class="bl">Osebna olajšava (student)</div><div class="br muted">− ${f(CFG.olajsavaStudent)}</div></div>
+          <div class="brow"><div class="bl">Splošna olajšava</div><div class="br muted">− ${f(splosna)}</div></div>
+          <div class="brow"><div class="bl">Posebna osebna olajšava (študent)</div><div class="br muted">− ${f(CFG.olajsavaStudent)}</div></div>
           <div class="brow total"><div class="bl" style="font-weight:600">Letna dohodnina</div><div class="br acc">${f(davek)}</div></div>`;
       }
     };
@@ -1037,7 +1062,7 @@ CALCS['otroški'] = {
     </div>
     <div class="result-panel"><div class="result-label">Mesečni otroški dodatek</div><div class="result-amount" id="od-res">—</div><div class="result-sub" id="od-sub"></div></div>
     <div class="breakdown" id="od-bdown"></div>
-    <p class="disclaimer">ZUPJS: znesek se vsako leto uskladi. Prikazani zneski so orientacijski za 2026.</p>`;
+    <p class="disclaimer">ZUPJS: zneski veljajo za vloge od 1. februarja 2026 oziroma priznanje pravice od 1. marca 2026.</p>`;
   },
   init(){
     window.OD={
@@ -1048,17 +1073,14 @@ CALCS['otroški'] = {
         let razred=-1;
         for(let i=0;i<CFG.otroškiRazredi.length;i++){ if(doh<=CFG.otroškiRazredi[i].do){ razred=i; break; } }
         let skupaj=0, rows='';
-        const osnove=[CFG.otroškiOsnova1,CFG.otroškiOsnova2,CFG.otroškiOsnova3];
+        const razredCfg=razred>=0?CFG.otroškiRazredi[razred]:CFG.otroškiRazredi[CFG.otroškiRazredi.length-1];
         for(let i=0;i<Math.min(this.n,4);i++){
-          const osn=i<3?osnove[i]:osnove[2];
-          const pctVal=razred>=0?CFG.otroškiRazredi[razred].odstotek:0;
-          const z=osn*pctVal/100;
+          const z=razredCfg.zneski[Math.min(i,2)] || 0;
           skupaj+=z;
-          rows+=`<div class="brow"><div class="bl">${i+1}. otrok (osnova ${f(osn)})</div><div class="br">${f(z)}</div></div>`;
+          rows+=`<div class="brow"><div class="bl">${i+1}. otrok</div><div class="br">${fp(z)}</div></div>`;
         }
-        const pctVal=razred>=0?CFG.otroškiRazredi[razred].odstotek:0;
-        document.getElementById('od-res').textContent=f(skupaj);
-        document.getElementById('od-sub').innerHTML=`${razred+1}. dohodkovni razred · ${pctVal} % od osnove`;
+        document.getElementById('od-res').textContent=fp(skupaj);
+        document.getElementById('od-sub').innerHTML=razred<8?`${razred+1}. dohodkovni razred`:'Nad mejo za otroški dodatek';
         document.getElementById('od-bdown').innerHTML=rows+`<div class="brow total"><div class="bl" style="font-weight:600">Skupaj</div><div class="br acc">${f(skupaj)}</div></div>`;
       }
     };
@@ -1176,7 +1198,7 @@ CALCS['vrtec'] = {
       calc(){
         const doh=parseAmt(document.getElementById('vr-doh').value);
         const cena=parseAmt(document.getElementById('vr-cena').value);
-        let razred=6, pctVal=CFG.vrtecRazredi[6].pct;
+        let razred=CFG.vrtecRazredi.length-1, pctVal=CFG.vrtecRazredi[CFG.vrtecRazredi.length-1].pct;
         for(let i=0;i<CFG.vrtecRazredi.length;i++){ if(doh<=CFG.vrtecRazredi[i].do){ razred=i; pctVal=CFG.vrtecRazredi[i].pct; break; } }
         const prispevek=cena*pctVal/100;
         const subvencija=cena-prispevek;
@@ -1918,11 +1940,13 @@ CALCS['sp-davcni'] = {
         // Prispevki na minimalni osnovi (~1 × minimalna plača × stopnje)
         const przMes=CFG.minPlaca*(CFG.przDelavec.piz+CFG.przDelavec.zz+0.0053+CFG.przDelavec.oskrbo+CFG.przDelod.oskrbo);
         const przLetni=przMes*12;
-        const normDavek=calcDohodnina(Math.max(0,normOsnova-przLetni),CFG.splosnaOlajsava);
+        const normDavcnaOsnova=Math.max(0,normOsnova-przLetni);
+        const normDavek=calcDohodnina(normDavcnaOsnova,splosnaOlajsavaZaDohodek(normDavcnaOsnova));
         const normNeto=p-przLetni-normDavek;
         // Dejanski
         const dejOsnova=p-s;
-        const dejDavek=calcDohodnina(Math.max(0,dejOsnova-przLetni),CFG.splosnaOlajsava);
+        const dejDavcnaOsnova=Math.max(0,dejOsnova-przLetni);
+        const dejDavek=calcDohodnina(dejDavcnaOsnova,splosnaOlajsavaZaDohodek(dejDavcnaOsnova));
         const dejNeto=p-s-przLetni-dejDavek;
         document.getElementById('sp-res').textContent=f(Math.max(normNeto,dejNeto));
         document.getElementById('sp-sub').innerHTML=`Normiranec: <strong>${f(normNeto)}</strong> · Dejanski: <strong>${f(dejNeto)}</strong>`;
@@ -1967,10 +1991,12 @@ CALCS['normiranec'] = {
         const s=parseAmt(document.getElementById('no-s').value);
         const przLetni=CFG.minPlaca*(CFG.przDelavec.piz+CFG.przDelavec.zz+0.0053+CFG.przDelavec.oskrbo+CFG.przDelod.oskrbo)*12;
         const normOsnova=p*0.20;
-        const normDavek=calcDohodnina(Math.max(0,normOsnova-przLetni),CFG.splosnaOlajsava);
+        const normDavcnaOsnova=Math.max(0,normOsnova-przLetni);
+        const normDavek=calcDohodnina(normDavcnaOsnova,splosnaOlajsavaZaDohodek(normDavcnaOsnova));
         const normNeto=p-przLetni-normDavek;
         const dejOsnova=p-s;
-        const dejDavek=calcDohodnina(Math.max(0,dejOsnova-przLetni),CFG.splosnaOlajsava);
+        const dejDavcnaOsnova=Math.max(0,dejOsnova-przLetni);
+        const dejDavek=calcDohodnina(dejDavcnaOsnova,splosnaOlajsavaZaDohodek(dejDavcnaOsnova));
         const dejNeto=p-s-przLetni-dejDavek;
         const ugodnejsi=normNeto>=dejNeto?'Normiranec':'Dejanski stroški';
         const razlika=Math.abs(normNeto-dejNeto);
